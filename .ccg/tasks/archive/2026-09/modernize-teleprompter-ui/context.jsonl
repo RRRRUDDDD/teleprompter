@@ -1,0 +1,7 @@
+{"file":"index.html","role":"简体中文工作台与移动端面板结构"}
+{"file":"styles.css","role":"移动端优先样式、深色提词器、浏览器回退"}
+{"file":"app.js","role":"文稿、预览、设置与播放交互"}
+{"file":"manifest.json","role":"静态部署、主题与现有图标路径"}
+{"file":".ccg/spec/frontend/index.md","role":"兼容性经验与前端约定"}
+{"file":"validation/verify_ui.py","role":"Chromium / WebKit 交互回归"}
+{"file":"validation/accessibility-report.json","role":"axe-core 6 状态可访问性结果"}

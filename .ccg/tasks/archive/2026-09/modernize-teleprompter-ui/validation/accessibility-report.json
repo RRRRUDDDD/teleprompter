@@ -1,0 +1,47 @@
+[
+  {
+    "width": 390,
+    "state": "editor",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 390,
+    "state": "preview",
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  {
+    "width": 390,
+    "state": "settings",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 390,
+    "state": "help",
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  {
+    "width": 1440,
+    "state": "workspace",
+    "violations": [],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "color-contrast"
+    ]
+  },
+  {
+    "width": 1440,
+    "state": "help",
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ]
+  }
+]

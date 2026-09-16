@@ -1,0 +1,5 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/analyzer.md
+<TASK>
+You are one of two independent analysts for a UI modernization in E:/Downloads/44456654/teleprompter. Read index.html, README.md, and .ccg/tasks/modernize-teleprompter-ui/requirements.md. User asks in Chinese: 帮我把它的ui重制得现代化一些. Focus on visual hierarchy, responsive layout, accessibility, copy, and interaction design for a polished teleprompter. Proposed direction: warm off-white editing workspace, restrained mint/teal accent, dark live preview, main script editor plus settings sidebar. Keep the static, framework-free deployment and existing capabilities. Provide concrete advice and a concise acceptance checklist. Read-only analysis: do not edit files, do not spawn agents, do not run external models, do not create tasks or commits. Root orchestrator manages the CCG workflow.
+</TASK>
+OUTPUT: Concise Chinese analysis report with recommended UI structure, accessibility requirements, and regression risks.

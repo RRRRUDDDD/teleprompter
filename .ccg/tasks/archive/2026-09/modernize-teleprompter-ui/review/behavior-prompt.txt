@@ -1,0 +1,5 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/reviewer.md
+<TASK>
+Read-only independent behavior review of E:/Downloads/44456654/teleprompter UI modernization. Read app.js, index.html, styles.css, manifest.json and git diff. The old index.html had an obfuscated inline script, replaced with readable static app.js preserving functionality. Focus on runtime bugs and regressions: editor/countdown/playing/paused/finished transitions, exit during countdown, repeated start, native fullscreen rejection/exit, wake-lock lifecycle/races, gamepad edge detection, pointer drag versus tap, mobile orientation, localStorage errors and old savedText compatibility. User emphasizes MOBILE FIRST and Simplified Chinese. Tests live in .ccg/tasks/modernize-teleprompter-ui/validation/verify_ui.py. Do not modify files, spawn agents, call models, create tasks, or commit; root handles CCG. Only evidence-based actionable findings; distinguish actual bugs from hypotheticals.
+</TASK>
+OUTPUT: Chinese Critical / Warning / Info report with file/line evidence and recommended fixes.
