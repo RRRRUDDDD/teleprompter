@@ -1,0 +1,110 @@
+[
+  {
+    "width": 320,
+    "height": 568,
+    "state": "editor",
+    "violations": [],
+    "incomplete": [
+      "aria-valid-attr-value"
+    ]
+  },
+  {
+    "width": 320,
+    "height": 568,
+    "state": "settings",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 320,
+    "height": 568,
+    "state": "reader",
+    "violations": [],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "bypass"
+    ]
+  },
+  {
+    "width": 320,
+    "height": 568,
+    "state": "font-panel",
+    "violations": [],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "bypass"
+    ]
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "editor",
+    "violations": [],
+    "incomplete": [
+      "aria-valid-attr-value"
+    ]
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "settings",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "reader",
+    "violations": [],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "bypass"
+    ]
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "font-panel",
+    "violations": [],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "bypass"
+    ]
+  },
+  {
+    "width": 1440,
+    "height": 1000,
+    "state": "editor",
+    "violations": [],
+    "incomplete": [
+      "aria-valid-attr-value"
+    ]
+  },
+  {
+    "width": 1440,
+    "height": 1000,
+    "state": "settings",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 1440,
+    "height": 1000,
+    "state": "reader",
+    "violations": [],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "bypass"
+    ]
+  },
+  {
+    "width": 1440,
+    "height": 1000,
+    "state": "font-panel",
+    "violations": [],
+    "incomplete": [
+      "aria-prohibited-attr",
+      "bypass"
+    ]
+  }
+]

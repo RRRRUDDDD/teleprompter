@@ -1,0 +1,32 @@
+{
+  "captured_at": "2026-09-16T08:13:17.924493+00:00",
+  "stage": "Both final full suites completed",
+  "files": {
+    "app.js": {
+      "sha256": "a00c816d8b8ccfda479e18822690e75e0b3e640973171a28736fdabd0d1ac5eb",
+      "modified_at": "2026-09-16T07:52:18.541630+00:00",
+      "matches_start": true
+    },
+    "index.html": {
+      "sha256": "99c109eb49ce14f00d069185a7ef04d5be9eea6f55c6826c958ceafc9911f732",
+      "modified_at": "2026-09-16T07:18:46.908034+00:00",
+      "matches_start": true
+    },
+    "styles.css": {
+      "sha256": "326f59ba7c3734b9fce82f516ec11522babdf7d711c49f1fc9da72fdf66db6bb",
+      "modified_at": "2026-09-16T07:38:37.990197+00:00",
+      "matches_start": true
+    },
+    "document-import.js": {
+      "sha256": "2f9a7e7545a8705cb288254c95bb4730e5e330f29c9fa3512d2195f44f3c419e",
+      "modified_at": "2026-09-16T07:38:37.988909+00:00",
+      "matches_start": true
+    },
+    "tests/verify_ui.py": {
+      "sha256": "5f9dc177dccca55ef2daf633914ba766268c7cd75e640ed606603f5aaeba321a",
+      "modified_at": "2026-09-16T08:07:15.666950+00:00",
+      "matches_start": true
+    }
+  },
+  "all_match_start": true
+}

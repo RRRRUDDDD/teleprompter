@@ -1,0 +1,20 @@
+{
+  "createdAt": "2026-09-16T08:09:53.367141+00:00",
+  "reason": "Preserve the completed implementation for reproducible validation while another task is planning changes in the shared workspace.",
+  "snapshot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\flow-mobile-docx-validation-ibwi8c0z",
+  "files": {
+    "index.html": "99c109eb49ce14f00d069185a7ef04d5be9eea6f55c6826c958ceafc9911f732",
+    "styles.css": "326f59ba7c3734b9fce82f516ec11522babdf7d711c49f1fc9da72fdf66db6bb",
+    "app.js": "a00c816d8b8ccfda479e18822690e75e0b3e640973171a28736fdabd0d1ac5eb",
+    "document-import.js": "2f9a7e7545a8705cb288254c95bb4730e5e330f29c9fa3512d2195f44f3c419e",
+    "manifest.json": "321445a2d3f25c69760940f80b86cc4043694d921f790bc0777adfb9258e4671",
+    "favicon.ico": "41ce5395cfdc6be58971f35c3b7efeb9efae95fb632b9a2300b119a33047104b",
+    "apple-touch-icon.png": "cbc623971a7b230cc986f931b1cf25ddc41786ee18ffc18d86b12fec536145ca",
+    "icon.png": "a2451383a520fc79a721502901e25d9675c50156ff159173a1bc5724c75eecf3",
+    "tests/verify_ui.py": "5f9dc177dccca55ef2daf633914ba766268c7cd75e640ed606603f5aaeba321a",
+    "tests/capture_ui.py": "1342de40526aa6684d635b0cbd4d29f704642e9bd92e51271c5ecd3609de1ed8",
+    "vendor/fflate-0.8.3.min.js": "462ef8041fc970e3615a20a9dd2b2e3047a073b2da729ef4f02b634bba8b7b83",
+    "vendor/fflate-LICENSE.txt": "0a1df3a083d0c010560aa342e87959c8c1070e6fd54545741f083f22d0c8b551",
+    "vendor/README.md": "51179ea56c065b5d1f5a39d1c15e1275a547b30ecefe8af6f098d562c8d21180"
+  }
+}

@@ -1,0 +1,209 @@
+{
+  "browser": "chromium",
+  "url": "http://127.0.0.1:4175",
+  "tests_run": 38,
+  "elapsed_seconds": 67.22,
+  "successful": true,
+  "failures": [],
+  "errors": [],
+  "skipped": [
+    {
+      "test": "test_native_fullscreen_exit_returns_to_editor_when_supported (__main__.TeleprompterTests.test_native_fullscreen_exit_returns_to_editor_when_supported)",
+      "reason": "Browser uses the in-page fullscreen fallback"
+    }
+  ],
+  "browser_logs": [
+    {
+      "test": "__main__.TeleprompterTests.test_async_import_cannot_overwrite_a_later_edit",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_clear_undo_and_saved_empty_draft",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_corrupt_settings_preserve_draft_and_valid_ranges",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_countdown_pause_timer_and_exit",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_docx_paragraph_break_tab_table_and_literal_html",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_docx_preserves_nonbreaking_hyphen",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_docx_undo_and_reselecting_same_file",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_docx_uppercase_missing_mime_and_strict_namespace",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_docx_xml_and_extracted_text_limits_preserve_draft",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_editor_keyboard_does_not_start_playback",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_editor_persistence_and_plain_text_rendering",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_empty_invalid_and_unsupported_imports_preserve_draft",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_enlarged_font_updates_completion_and_replay",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_exit_during_countdown_and_repeated_start",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_file_size_limits_preserve_draft",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_font_panel_close_and_pointer_slider_do_not_pause",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_font_range_buttons_keyboard_and_persistence",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_gamepad_edges_and_return",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_missing_word_document_preserves_draft",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_mobile_desktop_layout_and_touch_targets",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_modal_focus_escape_buttons_and_backdrop",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_native_fullscreen_exit_returns_to_editor_when_supported",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_optional_browser_apis_unavailable_or_rejected",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_reader_font_controls_replace_pause_button",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_reader_tap_space_enter_and_drag_preserve_pause_state",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_reset_settings_preserves_draft",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_settings_close_actions_survive_keyboard_blur_with_short_viewport",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_settings_dialog_stays_inside_visual_viewport_with_keyboard",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_settings_persistence_mirror_colors_and_visibility",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_settings_reset_survives_keyboard_blur_with_short_viewport",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_single_editor_and_dialog_contract",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_speed_buttons_keep_bounds_and_saved_settings",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_text_import_and_undo",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_touch_rotation_preserves_position_timer_and_open_font_panel",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_txt_does_not_load_zip_library",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_visual_viewport_keyboard_hint_recovers",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_wake_lock_is_released_on_exit",
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "test": "__main__.TeleprompterTests.test_zip_load_failure_is_retryable",
+      "page_errors": [],
+      "console_errors": [
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    }
+  ]
+}

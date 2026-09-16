@@ -1,0 +1,7 @@
+[codeagent-wrapper]
+  Backend: claude
+  Command: claude -p --dangerously-skip-permissions --setting-sources  --output-format stream-json --verbose -
+  PID: 36788
+  Log: C:\Users\RUD\AppData\Local\Temp\codeagent-wrapper-36788.log
+  Web UI: http://localhost:51883
+  Session-ID: 8340a053-08ba-4b89-8b34-b083e75e12e5

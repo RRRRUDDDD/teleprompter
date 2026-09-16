@@ -1,0 +1,8 @@
+{"path":"index.html","role":"Material 文稿控制台、设置弹窗与提词字号控件"}
+{"path":"styles.css","role":"手机优先、窄屏/横屏、安全区域和键盘弹窗布局"}
+{"path":"app.js","role":"文稿、设置、导入协调与提词状态"}
+{"path":"document-import.js","role":"本机 TXT/DOCX 纯文字读取"}
+{"path":"vendor/README.md","role":"固定解压依赖的来源、完整性与限制"}
+{"path":"tests/verify_ui.py","role":"文稿导入、设置、提词与软键盘交互的浏览器回归"}
+{"path":"tests/capture_ui.py","role":"界面截图复现"}
+{"path":".ccg/spec/frontend/index.md","role":"更新后的前端规范和兼容性经验"}

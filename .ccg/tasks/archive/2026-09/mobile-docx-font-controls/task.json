@@ -1,0 +1,14 @@
+{
+  "id": "mobile-docx-font-controls",
+  "title": "Material Design 移动端文稿控制台、设置弹窗、DOCX 导入与提词字号调整",
+  "status": "completed",
+  "complexity": "L",
+  "risk": "medium",
+  "domain": "frontend",
+  "currentPhase": "completed",
+  "nextAction": "无，任务已归档",
+  "createdAt": "2026-09-16T06:59:23Z",
+  "branch": "main",
+  "completedAt": "2026-09-16T08:17:23Z",
+  "archivedAt": "2026-09-16T08:17:23Z"
+}
