@@ -1,0 +1,19 @@
+{
+  "id": "publish-entire-worktree",
+  "title": "提交全库现有改动并更新 GitHub Pages",
+  "status": "completed",
+  "complexity": "S",
+  "risk": "medium",
+  "domain": "deployment",
+  "currentPhase": "completed",
+  "nextAction": "全库当前改动已提交并发布；草稿库/PWA 实现仍由原任务跟进",
+  "createdAt": "2026-09-17T07:18:39Z",
+  "branch": "main",
+  "repository": "RRRRUDDDD/teleprompter",
+  "authorization": "用户明确要求：你直接把全库提交就行了",
+  "scope": "提交现有 Material Design 界面、文档导入、测试、依赖及所有任务记录。草稿库和 PWA 目前只有计划，不声明实现完成。",
+  "publishedCommit": "60d38e5be6392f91c7916480abd31aba67090299",
+  "deploymentRun": "https://github.com/RRRRUDDDD/teleprompter/actions/runs/35194005828",
+  "pagesUrl": "https://teleprompter.yoshinagakoi.eu.org/",
+  "deploymentConclusion": "success"
+}
