@@ -1,0 +1,21 @@
+{
+  "id": "simplify-prompter-controls",
+  "title": "精简提词控件，新增多文稿库与可安装离线 PWA",
+  "status": "completed",
+  "complexity": "L",
+  "risk": "high",
+  "domain": "frontend",
+  "currentPhase": "completed",
+  "nextAction": "需求均已实现、验证并发布；无待完成项",
+  "createdAt": "2026-09-16T07:55:10Z",
+  "branch": "main",
+  "implementationBaseline": "0afcb2b8cb31c347a058103d03ba5ceb401f0f4f",
+  "resumedAt": "2026-09-17",
+  "authorization": "用户要求继续完成刚刚待实现需求；此前已授权完成后全库提交、推送 GitHub 并更新 Pages",
+  "publishedCommit": "6bc274aefa20cbe0061cb8b3882e5284ad3dd14c",
+  "pagesUrl": "https://teleprompter.yoshinagakoi.eu.org/",
+  "deploymentRun": "https://github.com/RRRRUDDDD/teleprompter/actions/runs/35197402896",
+  "deploymentConclusion": "success",
+  "liveValidation": "手机空白首页、文稿库保存、worker 缓存就绪、离线刷新恢复文稿、离线播放和字号控件均通过",
+  "completedAt": "2026-09-17T08:03:09.1003530Z"
+}

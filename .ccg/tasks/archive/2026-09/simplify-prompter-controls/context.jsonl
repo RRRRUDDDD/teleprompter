@@ -1,0 +1,10 @@
+{"file":"index.html","role":"简体中文文稿库、标题、直接字号控件和安装入口"}
+{"file":"styles.css","role":"Material Design 手机界面、窄屏两行工具栏和键盘弹窗"}
+{"file":"app.js","role":"文稿切换、导入隔离、撤销、焦点与播放集成"}
+{"file":"script-library.js","role":"IndexedDB 文稿持久化、一次迁移、故障与并发保护"}
+{"file":"pwa.js","role":"安装入口、注册、离线状态与等待更新提示"}
+{"file":"worker.js","role":"作用域缓存与不打断使用的离线更新"}
+{"file":"tests/verify_ui.py","role":"双浏览器完整 UI 回归"}
+{"file":"tests/verify_script_library.py","role":"迁移、事务、错误、并发和数据保留测试"}
+{"file":"tests/verify_pwa.py","role":"真实离线与安装缓存测试"}
+{"file":"validation/live-result.json","role":"线上 Pages 手机与离线验证"}

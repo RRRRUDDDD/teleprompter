@@ -1,0 +1,10 @@
+{
+  "url": "https://teleprompter.yoshinagakoi.eu.org/",
+  "checks": [
+    "new mobile UI and blank first draft",
+    "service worker cache ready",
+    "offline reload retains and opens draft library",
+    "offline playback and direct font controls"
+  ],
+  "http": 200
+}
