@@ -1,0 +1,54 @@
+[
+  {
+    "width": 390,
+    "state": "editor",
+    "violations": [],
+    "incomplete": [
+      "aria-valid-attr-value"
+    ]
+  },
+  {
+    "width": 390,
+    "state": "library",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 390,
+    "state": "library-delete",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 390,
+    "state": "settings",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 1440,
+    "state": "editor",
+    "violations": [],
+    "incomplete": [
+      "aria-valid-attr-value"
+    ]
+  },
+  {
+    "width": 1440,
+    "state": "library",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 1440,
+    "state": "library-delete",
+    "violations": [],
+    "incomplete": []
+  },
+  {
+    "width": 1440,
+    "state": "settings",
+    "violations": [],
+    "incomplete": []
+  }
+]

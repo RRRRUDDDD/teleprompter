@@ -6,8 +6,6 @@
     const mobileLayout = window.matchMedia('(max-width: 900px)');
     const themeColor = document.querySelector('meta[name="theme-color"]');
     const editorThemeColor = themeColor?.content;
-    const importButtonLabel = $('importLabel').textContent;
-    const SAMPLE_TEXT = '每一个精彩的故事，\n都值得被好好说出来。\n\n嗨，很高兴在这里见到你。\n\n也许你正在准备一次分享，录制一段视频，\n或是想把心里的想法，认真地说给世界听。\n\n不必着急，也不用担心忘词。\n调整到舒服的速度，深呼吸，看看镜头。\n\n让文字跟上你的节奏，\n把注意力留给真正重要的表达。\n\n准备好了吗？\n接下来的舞台，是你的。';
     const defaults = {
         fontFamily: $('fontFamily').options[0].value,
         fontSize: mobileLayout.matches ? 36 : 48,
@@ -34,13 +32,18 @@
     let importToken = 0;
     let importBusy = false;
     let settingsBackdropDown = false;
+    let library = null;
+    let libraryBusy = false;
+    let libraryReady = false;
+    let deletedDraft = null;
+    let libraryFocusTarget = 'openLibraryBtn';
+    let libraryFocusPending = false;
     const viewportState = { width: window.innerWidth, height: window.innerHeight, keyboardClosing: false };
     const session = {
         frame: 0, countdownInterval: 0, remaining: 0, elapsed: 0,
         y: 0, startY: 0, lastTimestamp: 0, textHeight: 0, viewportHeight: 0, travel: 1,
         drag: null, nativeFullscreen: false, previousScroll: 0,
         previousButtons: [], nextGamepadMove: 0, nextGamepadSpeed: 0,
-        panelEscapeTime: -Infinity,
     };
     const active = () => mode !== 'editor';
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -55,8 +58,7 @@
             localStorage.setItem(key, value);
             return true;
         } catch {
-            $('saveLabel').textContent = '未能保存，请保留文稿';
-            $('saveStatus').classList.add('unsaved');
+            showToast('设置未能保存，当前会话仍可使用');
             return false;
         }
     }
@@ -91,10 +93,8 @@
             else input.value = settings[name];
         }
         updateRange('fontSize');
-        updateRange('fontSize', 'playerFontSizeRange');
         updateRange('speed');
-        $('playerFontSizeValue').textContent = `${settings.fontSize} px`;
-        $('playerFontSizeRange').setAttribute('aria-valuetext', `${settings.fontSize} px`);
+        $('playerFontSizeValue').textContent = settings.fontSize;
         $('smallerFontBtn').disabled = settings.fontSize <= numericBounds.fontSize[0];
         $('largerFontBtn').disabled = settings.fontSize >= numericBounds.fontSize[1];
         $('fontColorValue').textContent = settings.fontColor.toUpperCase();
@@ -109,8 +109,6 @@
         $('referenceLine').hidden = settings.refLineWidth === 0 || !$('inputText').value.trim();
         $('timer').hidden = !settings.showTimer;
         $('playbackSpeed').textContent = settings.speed;
-        $('startHint').textContent = !$('inputText').value.trim() ? '先写下你想说的话' :
-            settings.countdownSetting ? `${settings.countdownSetting} 秒倒计时，从容开始` : '准备好，随时开始';
         if (active()) {
             if (themeColor) themeColor.content = settings.bgColor;
             if (remeasure) measureReader();
@@ -124,8 +122,12 @@
     }
 
     function updateDraftControls() {
-        $('startBtn').disabled = importBusy || !$('inputText').value.trim();
-        $('clearBtn').disabled = !$('inputText').value;
+        $('startBtn').disabled = !libraryReady || libraryBusy || importBusy || !$('inputText').value.trim();
+        $('clearBtn').disabled = !libraryReady || libraryBusy || !$('inputText').value;
+        $('importBtn').disabled = !libraryReady || libraryBusy || importBusy;
+        $('openLibraryBtn').disabled = !libraryReady || libraryBusy;
+        $('inputText').disabled = !libraryReady || libraryBusy;
+        $('draftTitle').disabled = !libraryReady || libraryBusy;
     }
 
     function updateDocument(save = true) {
@@ -134,10 +136,8 @@
         $('wordCount').textContent = count;
         $('readTime').textContent = formatTime(Math.ceil(count / 4));
         updateDraftControls();
-        if (save && writeStorage('savedText', value)) {
-            $('saveLabel').textContent = '已自动保存';
-            $('saveStatus').classList.remove('unsaved');
-        }
+        if (save && library) library.update({ title: $('draftTitle').value, text: value });
+        if (library) $('draftCount').textContent = library.list().length;
         applySettings();
     }
 
@@ -159,15 +159,19 @@
         toastTimeout = setTimeout(dismiss, 6500);
     }
 
-    function replaceDraft(value, message) {
+    function replaceDraft(value, message, title = $('draftTitle').value) {
         const previous = $('inputText').value;
+        const previousTitle = $('draftTitle').value;
+        const draftId = library?.active?.id;
         const revision = ++draftRevision;
         $('inputText').value = value;
+        $('draftTitle').value = title;
         updateDocument();
         showToast(message, () => {
-            if (draftRevision !== revision) return showToast('文稿已有新修改，已保留当前内容');
+            if (draftRevision !== revision || library?.active?.id !== draftId) return showToast('已保留当前文稿，未覆盖后续修改');
             ++draftRevision;
             $('inputText').value = previous;
+            $('draftTitle').value = previousTitle;
             updateDocument();
             $('inputText').focus({ preventScroll: true });
         });
@@ -175,10 +179,118 @@
 
     function setImportBusy(busy) {
         importBusy = busy;
-        $('importBtn').disabled = busy;
         $('importBtn').setAttribute('aria-busy', String(busy));
-        $('importLabel').textContent = busy ? '正在导入…' : importButtonLabel;
+        $('importBtn').setAttribute('aria-label', busy ? '正在导入文件' : '导入文件');
+        $('importBtn').title = busy ? '正在导入文件…' : '导入 TXT / DOCX 文件';
         updateDraftControls();
+    }
+
+    function updateLibraryStatus({ state, reason }) {
+        const labels = { saving: '正在保存…', saved: '已自动保存', unavailable: '未能保存，请保留文稿' };
+        $('saveLabel').textContent = reason === 'conflict' ? '其他窗口已修改，当前内容未保存' : labels[state] || labels.unavailable;
+        $('saveStatus').classList.toggle('unsaved', state === 'unavailable');
+        $('libraryStorageStatus').textContent = reason === 'conflict' ? '请先复制当前内容，再刷新读取其他窗口的版本' : state === 'unavailable' ? '当前仅保留在此会话，请勿关闭页面' : '仅保存在此设备';
+    }
+
+    async function initializeLibrary(legacyText) {
+        library = await window.FlowScriptLibrary.open({ legacyText, onStatus: updateLibraryStatus });
+        libraryReady = true;
+        loadActiveDraft();
+        document.body.dataset.libraryReady = 'true';
+    }
+
+    function loadActiveDraft() {
+        const draft = library.active;
+        $('draftTitle').value = draft?.title || '';
+        $('inputText').value = draft?.text || '';
+        updateDocument(false);
+    }
+
+    function createIcon(name) {
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        icon.classList.add('icon');
+        icon.setAttribute('aria-hidden', 'true');
+        use.setAttribute('href', `#${name}`);
+        icon.append(use);
+        return icon;
+    }
+
+    function renderLibrary() {
+        if (!library) return;
+        const query = $('librarySearch').value.trim().toLocaleLowerCase();
+        const drafts = library.list().filter((draft) => !query || `${draft.title}\n${draft.text}`.toLocaleLowerCase().includes(query))
+            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        const fragment = document.createDocumentFragment();
+        for (const draft of drafts) {
+            const title = draft.title.trim() || '未命名文稿';
+            const row = document.createElement('li');
+            row.className = 'draft-item';
+            row.dataset.draftId = draft.id;
+            const selected = draft.id === library.active?.id;
+            row.classList.toggle('is-current', selected);
+            const open = document.createElement('button');
+            open.type = 'button';
+            open.className = 'draft-open';
+            open.disabled = libraryBusy;
+            open.setAttribute('aria-current', String(selected));
+            open.setAttribute('aria-label', `打开文稿：${title}${selected ? '，当前文稿' : ''}`);
+            const copy = document.createElement('span');
+            copy.className = 'draft-summary';
+            const heading = document.createElement('strong');
+            heading.textContent = title;
+            const excerpt = document.createElement('span');
+            excerpt.className = 'draft-excerpt';
+            excerpt.textContent = draft.text.slice(0, 180).replace(/\s+/g, ' ').trim() || '还没有正文，写下第一句话吧。';
+            const meta = document.createElement('small');
+            meta.textContent = `${selected ? '当前文稿 · ' : ''}${new Date(draft.updatedAt).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}`;
+            copy.append(heading, excerpt, meta);
+            open.append(createIcon('i-file'), copy);
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'icon-button quiet-danger draft-delete';
+            remove.disabled = libraryBusy;
+            remove.setAttribute('aria-label', `删除文稿：${title}`);
+            remove.title = `删除文稿：${title}`;
+            remove.append(createIcon('i-trash'));
+            row.append(open, remove);
+            fragment.append(row);
+        }
+        $('draftList').replaceChildren(fragment);
+        $('libraryEmpty').hidden = drafts.length > 0;
+        $('draftCount').textContent = library.list().length;
+        $('newDraftBtn').disabled = libraryBusy;
+        $('undoDeleteBtn').disabled = libraryBusy || !deletedDraft;
+    }
+
+    async function changeLibrary(operation) {
+        if (!libraryReady || libraryBusy || active()) return;
+        libraryBusy = true;
+        ++draftRevision;
+        ++importToken;
+        setImportBusy(false);
+        renderLibrary();
+        try {
+            await library.flush();
+            await operation();
+            loadActiveDraft();
+        } finally {
+            libraryBusy = false;
+            updateDraftControls();
+            renderLibrary();
+            if (libraryFocusPending) restoreLibraryFocus();
+        }
+    }
+
+    function restoreLibraryFocus() {
+        if (active() || $('libraryDialog').open) return;
+        if (libraryBusy) {
+            libraryFocusPending = true;
+            return;
+        }
+        libraryFocusPending = false;
+        $(libraryFocusTarget).focus({ preventScroll: true });
+        libraryFocusTarget = 'openLibraryBtn';
     }
 
     function renderPlaybackState() {
@@ -197,15 +309,6 @@
         $('readerViewport').setAttribute('aria-label', mode === 'finished' ? '文稿已完成，轻点重播' :
             mode === 'paused' ? '轻点继续提词，上下拖动调整位置' :
             mode === 'countdown' ? '即将开始提词' : '轻点暂停提词，上下拖动调整位置');
-    }
-
-    function setFontSizePanel(open, restoreFocus = true) {
-        if (open && !active()) return;
-        const wasOpen = !$('fontSizePanel').hidden;
-        $('fontSizePanel').hidden = !open;
-        $('fontSizeBtn').setAttribute('aria-expanded', String(open));
-        if (open) $('playerFontSizeRange').focus({ preventScroll: true });
-        else if (wasOpen && restoreFocus && active()) $('fontSizeBtn').focus({ preventScroll: true });
     }
 
     function readingFraction() {
@@ -378,11 +481,12 @@
         mode = 'playing';
         session.lastTimestamp = performance.now();
         renderPlaybackState();
-        if ($('fontSizePanel').hidden) $('readerViewport').focus({ preventScroll: true });
+        if (!$('controlButtons').contains(document.activeElement)) $('readerViewport').focus({ preventScroll: true });
     }
 
     function startPlayer() {
-        if (active() || importBusy || !$('inputText').value.trim()) return;
+        if (active() || !libraryReady || libraryBusy || importBusy || !$('inputText').value.trim()) return;
+        library.flush();
         $('inputText').blur();
         if ($('settingsDialog').open) $('settingsDialog').close();
         const token = ++sessionToken;
@@ -391,7 +495,6 @@
         session.previousButtons = [];
         session.nextGamepadMove = 0;
         session.nextGamepadSpeed = 0;
-        session.panelEscapeTime = -Infinity;
         mode = settings.countdownSetting ? 'countdown' : 'playing';
         $('text').textContent = $('inputText').value;
         $('controls').hidden = true;
@@ -399,7 +502,6 @@
         $('display').hidden = false;
         $('toast').hidden = true;
         document.body.classList.add('is-presenting');
-        setFontSizePanel(false, false);
         updateViewportMetrics(true);
         if (themeColor) themeColor.content = settings.bgColor;
         resetReaderPosition();
@@ -438,7 +540,6 @@
         $('controls').hidden = false;
         $('appHeader').hidden = false;
         document.body.classList.remove('is-presenting');
-        setFontSizePanel(false, false);
         updateViewportMetrics(true);
         if (themeColor) themeColor.content = editorThemeColor;
         releaseWakeLock();
@@ -455,39 +556,96 @@
         }
     } catch { /* An invalid settings entry falls back to defaults; the draft is a separate key. */ }
     const savedDraft = readStorage('savedText');
-    $('inputText').value = savedDraft === null ? SAMPLE_TEXT : savedDraft;
+    $('inputText').value = savedDraft ?? '';
     setImportBusy(false);
-    setFontSizePanel(false, false);
-    updateDocument();
+    updateDocument(false);
     updateViewportMetrics();
+    initializeLibrary(savedDraft);
 
     $('inputText').addEventListener('input', () => {
         ++draftRevision;
         updateDocument();
     });
+    $('draftTitle').addEventListener('input', () => {
+        ++draftRevision;
+        updateDocument();
+    });
+    $('openLibraryBtn').addEventListener('click', () => {
+        if (!libraryReady || libraryBusy || active()) return;
+        library.flush();
+        $('inputText').blur();
+        $('draftTitle').blur();
+        $('librarySearch').value = '';
+        libraryFocusTarget = 'openLibraryBtn';
+        renderLibrary();
+        $('libraryDialog').showModal();
+        $('closeLibraryBtn').focus({ preventScroll: true });
+    });
+    $('librarySearch').addEventListener('input', renderLibrary);
+    $('closeLibraryBtn').addEventListener('click', () => $('libraryDialog').close());
+    $('libraryDialog').addEventListener('close', () => {
+        restoreLibraryFocus();
+        reflow();
+    });
+    $('newDraftBtn').addEventListener('click', async () => {
+        await changeLibrary(async () => {
+            await library.create({ title: '', text: '' });
+            libraryFocusTarget = 'draftTitle';
+            $('libraryDialog').close();
+        });
+    });
+    $('draftList').addEventListener('click', async (event) => {
+        const button = event.target.closest('button');
+        const id = button?.closest('.draft-item')?.dataset.draftId;
+        if (!id || libraryBusy) return;
+        if (button.classList.contains('draft-delete')) {
+            await changeLibrary(async () => {
+                deletedDraft = await library.remove(id);
+                $('libraryFeedbackMessage').textContent = '文稿已删除';
+                $('libraryFeedback').hidden = !deletedDraft;
+            });
+            $('undoDeleteBtn').focus({ preventScroll: true });
+        } else if (button.classList.contains('draft-open')) {
+            await changeLibrary(async () => {
+                await library.select(id);
+                libraryFocusTarget = 'inputText';
+                $('libraryDialog').close();
+            });
+        }
+    });
+    $('undoDeleteBtn').addEventListener('click', async () => {
+        if (!deletedDraft || libraryBusy) return;
+        await changeLibrary(async () => {
+            await library.restore(deletedDraft);
+            deletedDraft = null;
+            $('libraryFeedback').hidden = true;
+        });
+        $('newDraftBtn').focus({ preventScroll: true });
+    });
     $('clearBtn').addEventListener('click', () => replaceDraft('', '文稿已清空'));
-    $('sampleBtn').addEventListener('click', () => replaceDraft(SAMPLE_TEXT, '已载入示例文稿'));
     $('importBtn').addEventListener('click', () => $('importFile').click());
     $('importFile').addEventListener('change', async (event) => {
         const input = event.currentTarget;
         const file = input.files[0];
         // Clear immediately so choosing the same file again still emits change.
         input.value = '';
-        if (!file || active()) return;
+        if (!file || active() || !libraryReady || libraryBusy) return;
         const token = ++importToken;
         const revision = draftRevision;
+        const draftId = library.active.id;
         const previous = $('inputText').value;
         setImportBusy(true);
         try {
             if (typeof window.FlowDocumentImport?.read !== 'function') throw new Error('导入功能暂时不可用，请刷新页面后重试');
             const value = await window.FlowDocumentImport.read(file);
             if (token !== importToken) return;
-            if (revision !== draftRevision || previous !== $('inputText').value || active()) {
+            if (revision !== draftRevision || draftId !== library.active.id || previous !== $('inputText').value || active()) {
                 showToast('导入期间文稿已修改，已保留当前文稿');
                 return;
             }
             if (typeof value !== 'string' || !value.trim()) throw new Error('文件中没有可导入的文字');
-            replaceDraft(value, `已导入 ${file.name}`);
+            const title = $('draftTitle').value.trim() ? $('draftTitle').value : file.name.replace(/\.[^.]+$/, '').slice(0, 120);
+            replaceDraft(value, `已导入 ${file.name}`, title);
         } catch (error) {
             if (token === importToken) showToast(error instanceof Error && error.message
                 ? error.message : '文件读取失败，请重试或直接粘贴文字');
@@ -524,9 +682,6 @@
     $('exitBtn').addEventListener('click', () => exitPlayer());
     $('slowerBtn').addEventListener('click', () => changeSpeedBy(-5));
     $('fasterBtn').addEventListener('click', () => changeSpeedBy(5));
-    $('fontSizeBtn').addEventListener('click', () => setFontSizePanel($('fontSizePanel').hidden));
-    $('closeFontSizeBtn').addEventListener('click', () => setFontSizePanel(false));
-    $('playerFontSizeRange').addEventListener('input', (event) => changeSetting('fontSize', event.target.value));
     $('smallerFontBtn').addEventListener('click', () => changeFontSizeBy(-2));
     $('largerFontBtn').addEventListener('click', () => changeFontSizeBy(2));
 
@@ -565,11 +720,6 @@
         if (!active() || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
         if (event.code === 'Escape') {
             event.preventDefault();
-            if (!$('fontSizePanel').hidden) {
-                session.panelEscapeTime = performance.now();
-                setFontSizePanel(false);
-                return;
-            }
             exitPlayer();
             return;
         }
@@ -594,9 +744,7 @@
     const handleFullscreenChange = () => {
         if (active() && session.nativeFullscreen && !document.fullscreenElement && !document.webkitFullscreenElement) {
             session.nativeFullscreen = false;
-            // Browsers can consume Escape to leave native fullscreen before delivering keydown.
-            if (!$('fontSizePanel').hidden) setFontSizePanel(false);
-            else if (performance.now() - session.panelEscapeTime > 1000) exitPlayer(false);
+            exitPlayer(false);
         }
         reflow(true);
     };
@@ -604,11 +752,13 @@
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
+            library?.flush();
             if (mode === 'playing') togglePause();
             releaseWakeLock();
         } else if (active()) acquireWakeLock();
     });
     window.addEventListener('pagehide', () => {
+        library?.flush();
         if (active()) exitPlayer();
     });
 
@@ -617,7 +767,7 @@
         const height = viewport?.height || window.innerHeight;
         const fullHeight = Math.max(window.innerHeight, height);
         const editing = mobileLayout.matches && !active()
-            && document.activeElement?.matches('textarea, input[type="number"]');
+            && document.activeElement?.matches('textarea, input[type="number"], input[type="text"], input[type="search"]');
         if (reset || Math.abs(window.innerWidth - viewportState.width) > 40) {
             viewportState.width = window.innerWidth;
             viewportState.height = fullHeight;

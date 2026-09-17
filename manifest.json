@@ -2,6 +2,7 @@
   "name": "Flow · 简易提词器",
   "short_name": "Flow 提词器",
   "lang": "zh-CN",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

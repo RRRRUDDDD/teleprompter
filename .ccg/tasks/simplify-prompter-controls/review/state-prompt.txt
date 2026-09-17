@@ -1,0 +1,5 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/reviewer.md
+<TASK>
+Read-only final data/PWA review for E:/Downloads/44456654/teleprompter, task .ccg/tasks/simplify-prompter-controls. Review script-library.js, app.js, worker.js, pwa.js and tests. Need evidence-based bugs in IndexedDB queued writes, migration, failure preserving data, delayed import vs switching, undo protection, native fullscreen/wake locks, offline cached app shell and DOCX import, safe waiting updates, scopes and cache ownership. Existing document-import.js unchanged. User wants mobile Simplified Chinese UI plus multi-draft local library and offline installation. Do not edit files, run other models, create tasks, spawn agents or commit. Scope and module contracts in task plan.md. Report Critical/Warning/Info with file/line and concrete reproduction conditions, no invented issues.
+</TASK>
+OUTPUT: Concise Chinese review report.

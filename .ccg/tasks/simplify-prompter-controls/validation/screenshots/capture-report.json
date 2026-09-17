@@ -1,0 +1,133 @@
+{
+  "browser": "chromium",
+  "url": "http://127.0.0.1:4175",
+  "screenshots": [
+    {
+      "file": "desktop.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "scroll_width": 1440,
+      "state": null
+    },
+    {
+      "file": "desktop-settings.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "scroll_width": 1440,
+      "state": null
+    },
+    {
+      "file": "mobile-editor.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scroll_width": 390,
+      "state": null
+    },
+    {
+      "file": "mobile-library.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scroll_width": 390,
+      "state": null
+    },
+    {
+      "file": "mobile-editor-populated.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scroll_width": 390,
+      "state": null
+    },
+    {
+      "file": "mobile-settings.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scroll_width": 390,
+      "state": null
+    },
+    {
+      "file": "mobile-settings-bottom.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scroll_width": 390,
+      "state": null
+    },
+    {
+      "file": "mobile-player.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scroll_width": 390,
+      "state": "paused"
+    },
+    {
+      "file": "mobile-player-font-adjusted.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scroll_width": 390,
+      "state": "paused"
+    },
+    {
+      "file": "mobile-player-landscape.png",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "scroll_width": 844,
+      "state": "paused"
+    },
+    {
+      "file": "mobile-settings-landscape.png",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "scroll_width": 844,
+      "state": "paused"
+    },
+    {
+      "file": "narrow-editor.png",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "scroll_width": 320,
+      "state": null
+    },
+    {
+      "file": "narrow-settings.png",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "scroll_width": 320,
+      "state": null
+    },
+    {
+      "file": "narrow-player.png",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "scroll_width": 320,
+      "state": "paused"
+    }
+  ],
+  "browser_errors": []
+}

@@ -1,0 +1,5 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/reviewer.md
+<TASK>
+Read-only final UI review for E:/Downloads/44456654/teleprompter, task .ccg/tasks/simplify-prompter-controls. Review current git diff plus newly added script-library.js and pwa.js. User requested mobile-first Simplified Chinese Material Design UI, no sample or startup hint, icon-only import/settings, direct font minus/plus, a local multi-draft library and offline installable PWA. Focus index.html/styles.css/app.js, UI correctness, touch targets at 320/390/844x390, native-dialog accessibility and focus, storage notifications, destructive action undo. Requirements and plan are in task directory. Do not edit files, run other models, create tasks, spawn agents or commit. Output evidence-based Critical/Warning/Info findings with file/line; do not fabricate problems.
+</TASK>
+OUTPUT: Concise Chinese review report.

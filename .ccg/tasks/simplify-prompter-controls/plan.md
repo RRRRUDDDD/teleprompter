@@ -1,47 +1,39 @@
 # 实施计划
 
-## 分析与决定
+2026-09-17 继续同一任务。基线 0afcb2b，当前工作区已完整提交。此前双路外部分析失败记录及两份独立研究保留，按现有研究落实。
 
-- 页面交互集中在 index.html、styles.css 和 app.js；同步回归与说明共涉及六个文件，按 L 复杂度执行。
-- 两路外部 Claude 已按要求并行调用，均因 HTTP 401 authentication_failed 退出，没有可用分析输出。由主代理源码分析与独立研究代理补足；不能将这次调用记为通过。
-- 删除 DOM 节点时同时移除 app.js 的初始化、事件和设置刷新引用，避免整个页面因空节点而停止运行。
-- 保留字号现有 changeSetting / measureReader 流程；删除的仅是展开面板这一层交互。
-- 速度和字号沿用相同加减布局；窄屏采用两行控制、两侧重播与退出，不压缩 44×44 px 触控目标。
+## 文件分工
 
-## Layer 1：文件归属
+- 主代理：index.html、styles.css、app.js、前端 spec、任务记录、集成和最终发布。
+- 存储代理：script-library.js、tests/verify_script_library.py。实现 IndexedDB 按文稿持久化、旧 savedText 单次迁移、故障保留内存内容与真实保存状态。
+- PWA 代理：pwa.js、worker.js、manifest.json、tests/verify_pwa.py。作用域内预缓存、离线文本/Word 导入、安装入口、等待式版本更新。
+- UI 测试代理：tests/verify_ui.py、tests/capture_ui.py、README.md。移除示例/面板旧断言，覆盖文稿库和直接字号控件。
 
-### 主代理：index.html、app.js、styles.css
+## 实现契约
 
-1. 移除示例、首页启动提示、导入/设置可见文字和字号二级面板；更新页面帮助。
-2. 首页图标按钮保留 aria-label/title；导入忙碌时使用图标反馈、禁用状态和无障碍名称。
-3. 提词底栏保留 smallerFontBtn / playerFontSizeValue / largerFontBtn；字号数值为纯数字，单位单独展示。
-4. 删除面板生命周期与 Esc/全屏专用分支，直接退出；倒计时完成时避免抢走正在使用的调节按钮焦点。
-5. 清理旧 CSS，适配手机与横屏；首页启动区文案删除后收紧相应留白。
-6. 每个生产文件修改后执行相应语法/结构检查，三个文件就绪后浏览器冒烟验证。
+### 页面
 
-### 测试代理：tests/verify_ui.py
+- 引入脚本顺序 document-import.js、script-library.js、app.js、pwa.js，全部 defer。
+- 保留 inputText；新增文稿标题 draftTitle、文稿库入口 openLibraryBtn、原生弹窗 libraryDialog、关闭 closeLibraryBtn、新建 newDraftBtn、搜索 librarySearch、列表 draftList、空列表提示 libraryEmpty。
+- 文稿条目为 .draft-item[data-draft-id]；切换按钮 .draft-open，删除按钮 .draft-delete。标题均以 textContent 渲染。
+- 新设备空稿；已有 savedText 单次迁移为文稿。不删现有示例文字，因为它已经属于用户保存内容。
+- importBtn / openSettingsBtn 只显示 SVG，保留名称、44px 点击区和 aria-busy。
+- 移除 sampleBtn、startHint、fontSizeBtn、fontSizePanel、playerFontSizeRange 及对应事件。保留 smallerFontBtn、playerFontSizeValue、largerFontBtn；数字独立，单位 px。
+- 设置弹窗新增 installAppBtn、installHint、offlineStatus（role=status）、updateStatus。
+- 页面对外用 body[data-library-ready="true"] 表示初始化完成；异步恢复前禁用编辑/导入/播放，失败则启用内存模式并显示未保存状态。
 
-1. 先阅读现有完整测试；更新默认示例、importLabel、二级面板的旧假设。
-2. 用真实加减交互验证字号、生效范围、存储、焦点、提词状态和阅读进度。
-3. 保留独立文档导入、倒计时、键盘/触屏/全屏、手机旋转和软键盘测试。
-4. 覆盖手机窄屏所有六个工具栏按钮在视口内，且目标至少 44×44 px。
-5. 运行 Python 编译检查，待生产实现就绪由主代理运行完整 Chromium / WebKit 测试。
+### 文稿模块
 
-### 说明与截图代理：README.md、tests/capture_ui.py
+- window.FlowScriptLibrary.open({legacyText, onStatus}) 异步返回库，初始化异常返回保留正文的内存模式，不能挂死。
+- 库提供 active getter（克隆文稿对象或 null）、list()（克隆数组）、update({title,text})、create({title,text})、select(id)、remove(id)、restore(record)、flush()。
+- update 同步更新内存、异步持久化。操作不得因存储故障丢弃内存内容。文稿含 id/title/text/createdAt/updatedAt，id 稳定。
+- create/select/remove/restore 返回 Promise，remove 返回完整已删文稿快照；删除最后一篇时创建空稿，restore 仅恢复记录而不切换，以保护删除后的新编辑。
+- onStatus({state}) 的 state 为 saving/saved/unavailable；只有全部当前改动写入成功才显示 saved。存储失败时后续设置写入成功不能掩盖文稿未保存状态。
+- 保留独立 savedText 兼容镜像，权威来源为 IndexedDB；写入 mirror 要有 active ID 与修订守卫。
 
-1. 使用说明改为图标导入/设置，直接加减字号，Esc 返回编辑；移除示例载入的说明。
-2. 截图脚本显式填入测试文稿，删除展开/收起字号面板的操作，保留直接工具栏的竖屏/窄屏/横屏截图。
-3. 执行 Python 编译检查，不运行完整回归、不改生产代码。
+## 验证与发布
 
-## Layer 2：整合与审查
-
-1. 主代理核对交付和基线差异，运行两个浏览器的现有完整回归与截图。
-2. 并行发起两路外部审查；如仍有鉴权错误，记录实际结果并使用独立审查代理检查本次差异。修复真实问题并复验相关测试。
-3. 更新 .ccg/spec/frontend/index.md 中已过时的字号面板描述，记录必要的窄屏布局约定。
-4. 写 review.md 与验证证据，标记完成；只归档和提交本任务目录，保留既有未提交工作。
-
-## 验收
-
-- 首页不再提供或自动载入示例，没有倒计时提示行；导入和设置为纯图标且仍可正常操作。
-- 字号在提词时始终直接可调，无二级菜单；速度、暂停/继续、倒计时与导入无回归。
-- Chromium 与 WebKit 回归通过，无意外页面错误；320/390px、横屏和桌面截图检查通过。
+1. 各代理仅修改所分配文件，不撤销其他代理工作，不再 spawn。
+2. 主代理做集成、基础语法检查、现有 Chromium/WebKit UI 回归、存储故障/迁移和离线测试、移动截图与可访问性检查。
+3. 并行调用两个外部审查。如外部不可用则明确记录，并使用独立子代理审查，不伪造通过。
+4. 修复真实问题，更新 spec；归档并提交任务，全库提交推送 main；确认 Pages 成功与线上版本。

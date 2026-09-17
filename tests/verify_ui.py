@@ -110,7 +110,7 @@ class TeleprompterTests(unittest.TestCase):
         self.errors = []
         self.requests = []
         self.console_messages = []
-        self.context = self.browser.new_context(viewport={"width": 1280, "height": 900})
+        self.context = self.browser.new_context(viewport={"width": 1280, "height": 900}, service_workers="block")
         self.context.add_init_script(NO_FULLSCREEN)
         self.page = self.context.new_page()
         self.page.set_default_timeout(8000)
@@ -118,6 +118,7 @@ class TeleprompterTests(unittest.TestCase):
         self.page.on("request", lambda request: self.requests.append(request.url))
         self.page.on("console", lambda message: self.console_messages.append(message.text) if message.type == "error" else None)
         self.page.goto(BASE_URL, wait_until="networkidle")
+        self.wait_ready()
 
     def tearDown(self):
         self.context.close()
@@ -128,6 +129,56 @@ class TeleprompterTests(unittest.TestCase):
         page = page or self.page
         page.locator("#openSettingsBtn").click()
         expect(page.locator("#settingsDialog")).to_be_visible()
+
+    def wait_ready(self, page=None):
+        expect((page or self.page).locator("body")).to_have_attribute("data-library-ready", "true")
+
+    def wait_saved(self, draft=None, page=None):
+        page = page or self.page
+        if draft is None:
+            draft = page.locator("#inputText").input_value()
+        page.wait_for_function("text => localStorage.getItem('savedText') === text", arg=draft)
+        expect(page.locator("#saveLabel")).to_have_text("已自动保存")
+
+    def reload_page(self, page=None):
+        page = page or self.page
+        self.wait_saved(page=page)
+        page.reload(wait_until="networkidle")
+        self.wait_ready(page)
+
+    def open_library(self, page=None):
+        page = page or self.page
+        page.locator("#openLibraryBtn").click()
+        expect(page.locator("#libraryDialog")).to_be_visible()
+
+    def draft_item(self, title, page=None):
+        page = page or self.page
+        return page.locator(".draft-item").filter(has=page.get_by_text(title, exact=True))
+
+    def create_draft(self, title, text, page=None):
+        page = page or self.page
+        self.open_library(page)
+        page.locator("#newDraftBtn").click()
+        expect(page.locator("#libraryDialog")).to_be_hidden()
+        expect(page.locator("#inputText")).to_have_value("")
+        page.locator("#draftTitle").fill(title)
+        page.locator("#inputText").fill(text)
+
+    def select_draft(self, title, page=None):
+        page = page or self.page
+        self.open_library(page)
+        self.draft_item(title, page).locator(".draft-open").click()
+        expect(page.locator("#libraryDialog")).to_be_hidden()
+        expect(page.locator("#draftTitle")).to_have_value(title)
+
+    def change_reader_font(self, target, page=None):
+        page = page or self.page
+        current = int(page.locator("#playerFontSizeValue").inner_text())
+        self.assertEqual(abs(target - current) % 2, 0)
+        button = "#largerFontBtn" if target > current else "#smallerFontBtn"
+        for _ in range(abs(target - current) // 2):
+            page.locator(button).click()
+        expect(page.locator("#playerFontSizeValue")).to_have_text(str(target))
 
     def configure(self, page=None, **values):
         page = page or self.page
@@ -212,7 +263,7 @@ class TeleprompterTests(unittest.TestCase):
 
     @contextmanager
     def phone(self, width=390, height=844, init_script=NO_FULLSCREEN):
-        with self.browser.new_context(viewport={"width": width, "height": height}, is_mobile=True, has_touch=True) as context:
+        with self.browser.new_context(viewport={"width": width, "height": height}, is_mobile=True, has_touch=True, service_workers="block") as context:
             if init_script:
                 context.add_init_script(init_script)
             page = context.new_page()
@@ -220,6 +271,7 @@ class TeleprompterTests(unittest.TestCase):
             page.on("pageerror", lambda error: self.errors.append(str(error)))
             page.on("console", lambda message: self.console_messages.append(message.text) if message.type == "error" else None)
             page.goto(BASE_URL, wait_until="networkidle")
+            self.wait_ready(page)
             yield page
 
     def assert_fits_viewport(self, selector, page=None, minimum_target=False):
@@ -243,13 +295,13 @@ class TeleprompterTests(unittest.TestCase):
         expect(self.page.locator("#toastMessage")).to_have_text(re.compile(r"[\u4e00-\u9fff]"))
         expect(self.page.locator("#importFile")).to_have_value("")
         expect(self.page.locator("#inputText")).to_have_value(draft)
-        self.assertEqual(self.page.evaluate("localStorage.getItem('savedText')"), draft)
+        self.wait_saved(draft)
 
     def test_editor_persistence_and_plain_text_rendering(self):
         draft = "你好，镜头。\nKeep your own pace.\n<script>window.injected = true</script>"
         self.page.locator("#inputText").fill(draft)
         expect(self.page.locator("#wordCount")).to_have_text(str(len(re.sub(r"\s", "", draft))))
-        self.page.reload()
+        self.reload_page()
         expect(self.page.locator("#inputText")).to_have_value(draft)
         self.start_reader(draft=draft)
         expect(self.page.locator("#text")).to_have_text(draft)
@@ -265,7 +317,7 @@ class TeleprompterTests(unittest.TestCase):
         self.page.locator("#toastAction").click()
         expect(self.page.locator("#inputText")).to_have_value(draft)
         self.page.locator("#clearBtn").click()
-        self.page.reload()
+        self.reload_page()
         expect(self.page.locator("#inputText")).to_have_value("")
         expect(self.page.locator("#startBtn")).to_be_disabled()
 
@@ -282,12 +334,255 @@ class TeleprompterTests(unittest.TestCase):
 
     def test_single_editor_and_dialog_contract(self):
         expect(self.page.locator("#inputText")).to_be_visible()
+        expect(self.page.locator("#inputText")).to_have_value("")
+        expect(self.page.locator("#startBtn")).to_be_disabled()
+        expect(self.page.locator("#sampleBtn, #startHint, #importLabel")).to_have_count(0)
         expect(self.page.locator("#settingsDialog")).to_be_hidden()
         expect(self.page.locator("#previewText, .mobile-tabs, [role=tablist], #pauseBtn")).to_have_count(0)
+        for selector in ["#importBtn", "#openSettingsBtn"]:
+            button = self.page.locator(selector)
+            expect(button).to_have_text("")
+            expect(button.locator("svg")).to_have_count(1)
+            self.assertTrue(button.get_attribute("aria-label"))
+            self.assertTrue(button.get_attribute("title"))
+            self.assert_fits_viewport(selector, minimum_target=True)
         self.open_settings()
         self.assertTrue(self.page.locator("#settingsDialog").evaluate("el => el.matches(':modal')"))
         for name in ["fontFamily", "fontSize", "fontSizeRange", "fontColor", "bgColor", "speed", "speedRange", "countdownSetting", "mirror", "showTimer", "refLineColor", "refLineWidth"]:
             expect(self.page.locator(f"#settingsDialog #{name}")).to_have_count(1)
+
+    def test_library_create_rename_search_switch_and_refresh(self):
+        title = '开场 <img src=x onerror="window.titleExecuted=true">'
+        self.page.locator("#draftTitle").fill(title)
+        self.page.locator("#inputText").fill("第一篇原稿。")
+        self.create_draft("第二篇访谈", "第二篇保留内容。")
+        self.open_library()
+        expect(self.page.locator(".draft-item")).to_have_count(2)
+        expect(self.page.locator("#draftCount")).to_have_text("2")
+        expect(self.page.locator("#draftList img, #draftList script")).to_have_count(0)
+        self.assertIsNone(self.page.evaluate("window.titleExecuted"))
+        first_id = self.draft_item(title).get_attribute("data-draft-id")
+        self.page.locator("#librarySearch").fill("访谈")
+        expect(self.page.locator(".draft-item:visible")).to_have_count(1)
+        expect(self.draft_item("第二篇访谈")).to_be_visible()
+        self.page.locator("#librarySearch").fill("第一篇原稿")
+        expect(self.page.locator(".draft-item:visible")).to_have_count(1)
+        expect(self.draft_item(title)).to_be_visible()
+        expect(self.page.locator("#draftCount")).to_have_text("2")
+        self.page.locator("#librarySearch").fill("不会匹配任何文稿")
+        expect(self.page.locator(".draft-item:visible")).to_have_count(0)
+        expect(self.page.locator("#libraryEmpty")).to_be_visible()
+        self.page.locator("#librarySearch").fill("")
+        self.draft_item(title).locator(".draft-open").click()
+        expect(self.page.locator("#libraryDialog")).to_be_hidden()
+        expect(self.page.locator("#inputText")).to_have_value("第一篇原稿。")
+        self.page.locator("#draftTitle").fill("开场修订")
+        self.page.locator("#inputText").fill("第一篇新内容，切换时必须保存。")
+        self.select_draft("第二篇访谈")
+        expect(self.page.locator("#inputText")).to_have_value("第二篇保留内容。")
+        self.reload_page()
+        expect(self.page.locator("#draftTitle")).to_have_value("第二篇访谈")
+        expect(self.page.locator("#inputText")).to_have_value("第二篇保留内容。")
+        self.select_draft("开场修订")
+        expect(self.page.locator("#inputText")).to_have_value("第一篇新内容，切换时必须保存。")
+        self.open_library()
+        expect(self.draft_item("开场修订")).to_have_attribute("data-draft-id", first_id)
+        expect(self.page.locator(".draft-item")).to_have_count(2)
+
+    def test_library_delete_undo_preserves_current_edits(self):
+        self.page.locator("#draftTitle").fill("保留稿")
+        self.page.locator("#inputText").fill("保留稿原文。")
+        self.create_draft("待删除稿", "删除后撤销应恢复的原文。")
+        self.open_library()
+        deleted_id = self.draft_item("待删除稿").get_attribute("data-draft-id")
+        self.draft_item("待删除稿").locator(".draft-delete").click()
+        expect(self.page.locator(f'.draft-item[data-draft-id="{deleted_id}"]')).to_have_count(0)
+        expect(self.page.locator("#libraryFeedbackMessage")).to_have_attribute("role", "status")
+        expect(self.page.locator("#undoDeleteBtn")).to_be_visible()
+        self.page.locator("#closeLibraryBtn").click()
+        expect(self.page.locator("#draftTitle")).to_have_value("保留稿")
+        self.page.locator("#inputText").fill("删除另一篇后刚写的新内容。")
+        self.open_library()
+        self.page.locator("#undoDeleteBtn").click()
+        expect(self.draft_item("待删除稿")).to_be_visible()
+        self.page.locator("#closeLibraryBtn").click()
+        expect(self.page.locator("#draftTitle")).to_have_value("保留稿")
+        expect(self.page.locator("#inputText")).to_have_value("删除另一篇后刚写的新内容。")
+        self.select_draft("待删除稿")
+        expect(self.page.locator("#inputText")).to_have_value("删除后撤销应恢复的原文。")
+        self.reload_page()
+        self.open_library()
+        expect(self.draft_item("待删除稿")).to_have_attribute("data-draft-id", deleted_id)
+        expect(self.page.locator(".draft-item")).to_have_count(2)
+
+    def test_library_delete_last_draft_keeps_blank_editor_and_can_undo(self):
+        self.page.locator("#draftTitle").fill("唯一文稿")
+        self.page.locator("#inputText").fill("唯一文稿原文。")
+        self.open_library()
+        self.draft_item("唯一文稿").locator(".draft-delete").click()
+        expect(self.draft_item("唯一文稿")).to_have_count(0)
+        self.page.locator("#closeLibraryBtn").click()
+        expect(self.page.locator("#inputText")).to_have_value("")
+        expect(self.page.locator("#startBtn")).to_be_disabled()
+        self.page.locator("#inputText").fill("删除最后一篇后开始的新稿。")
+        self.open_library()
+        self.page.locator("#undoDeleteBtn").click()
+        expect(self.draft_item("唯一文稿")).to_be_visible()
+        self.page.locator("#closeLibraryBtn").click()
+        expect(self.page.locator("#inputText")).to_have_value("删除最后一篇后开始的新稿。")
+        self.select_draft("唯一文稿")
+        expect(self.page.locator("#inputText")).to_have_value("唯一文稿原文。")
+
+    def test_library_pending_import_cannot_modify_another_draft(self):
+        self.page.locator("#draftTitle").fill("导入目标")
+        self.page.locator("#inputText").fill("导入目标原文。")
+        self.create_draft("正在编辑", "第二篇原文。")
+        self.select_draft("导入目标")
+        self.page.evaluate("""() => {
+            window.FlowDocumentImport = {
+                read: () => new Promise(resolve => { window.resolvePendingImport = resolve; })
+            };
+        }""")
+        self.upload("pending.txt", b"pending", "text/plain")
+        self.page.wait_for_function("typeof window.resolvePendingImport === 'function'")
+        expect(self.page.locator("#importBtn")).to_have_attribute("aria-busy", "true")
+        self.select_draft("正在编辑")
+        self.page.locator("#inputText").fill("切稿后新增的内容。")
+        self.page.evaluate("window.resolvePendingImport('迟到的导入结果。')")
+        expect(self.page.locator("#importBtn")).to_have_attribute("aria-busy", "false")
+        expect(self.page.locator("#inputText")).to_have_value("切稿后新增的内容。")
+        self.reload_page()
+        expect(self.page.locator("#inputText")).to_have_value("切稿后新增的内容。")
+        self.select_draft("导入目标")
+        expect(self.page.locator("#inputText")).to_have_value("导入目标原文。")
+
+    def test_library_old_undo_cannot_replace_a_different_draft(self):
+        self.page.locator("#draftTitle").fill("第一篇")
+        self.page.locator("#inputText").fill("第一篇正文。")
+        self.create_draft("第二篇", "第二篇正文。")
+        self.select_draft("第一篇")
+        self.page.locator("#clearBtn").click()
+        self.select_draft("第二篇")
+        if self.page.locator("#toastAction").is_visible():
+            self.page.locator("#toastAction").click()
+        expect(self.page.locator("#inputText")).to_have_value("第二篇正文。")
+        self.reload_page()
+        expect(self.page.locator("#inputText")).to_have_value("第二篇正文。")
+
+    def test_library_migrates_legacy_text_once_and_prefers_indexeddb(self):
+        init_script = NO_FULLSCREEN + """
+            if (!sessionStorage.getItem('legacy-test-seeded')) {
+                localStorage.setItem('savedText', '升级之前已经保存的稿子。');
+                sessionStorage.setItem('legacy-test-seeded', 'true');
+            }
+        """
+        with self.phone(init_script=init_script) as phone:
+            expect(phone.locator("#inputText")).to_have_value("升级之前已经保存的稿子。")
+            phone.locator("#draftTitle").fill("已迁移的稿子")
+            phone.locator("#inputText").fill("迁移之后的新正文。")
+            self.wait_saved("迁移之后的新正文。", phone)
+            phone.evaluate("localStorage.setItem('savedText', '过时的兼容镜像。')")
+            phone.reload(wait_until="networkidle")
+            self.wait_ready(phone)
+            expect(phone.locator("#draftTitle")).to_have_value("已迁移的稿子")
+            expect(phone.locator("#inputText")).to_have_value("迁移之后的新正文。")
+            self.open_library(phone)
+            expect(phone.locator(".draft-item")).to_have_count(1)
+
+    def test_library_storage_failure_keeps_session_usable_and_unsaved(self):
+        init_script = NO_FULLSCREEN + """
+            localStorage.setItem('savedText', '存储不可用时仍保留旧正文。');
+            Object.defineProperty(window, 'indexedDB', {value: {
+                open() { throw new DOMException('blocked', 'SecurityError'); }
+            }});
+        """
+        with self.phone(init_script=init_script) as phone:
+            expect(phone.locator("#inputText")).to_have_value("存储不可用时仍保留旧正文。")
+            phone.locator("#inputText").fill("会话中仍然可以编辑和提词。")
+            expect(phone.locator("#saveLabel")).to_have_text(re.compile("未.*保存"))
+            self.configure(phone, speed=65, countdownSetting=0)
+            expect(phone.locator("#saveLabel")).to_have_text(re.compile("未.*保存"))
+            phone.locator("#startBtn").click()
+            expect(phone.locator("#display")).to_have_attribute("data-state", "playing")
+            phone.locator("#exitBtn").click()
+            expect(phone.locator("#inputText")).to_have_value("会话中仍然可以编辑和提词。")
+            expect(phone.locator("#saveLabel")).to_have_text(re.compile("未.*保存"))
+
+    def test_mobile_library_dialog_title_limit_and_focus(self):
+        with self.phone(width=320, height=568) as phone:
+            phone.locator("#draftTitle").fill("稿" * 130)
+            expect(phone.locator("#draftTitle")).to_have_attribute("maxlength", "120")
+            self.assertLessEqual(len(phone.locator("#draftTitle").input_value()), 120)
+            phone.locator("#draftTitle").blur()
+            self.open_library(phone)
+            self.assertTrue(phone.locator("#libraryDialog").evaluate("el => el.matches(':modal')"))
+            for selector in ["#libraryDialog", "#newDraftBtn", "#closeLibraryBtn", "#librarySearch"]:
+                self.assert_fits_viewport(selector, phone)
+            phone.locator("#inputText").evaluate("el => el.focus()")
+            self.assertTrue(phone.locator("#libraryDialog").evaluate("el => el.contains(document.activeElement)"))
+            phone.keyboard.press("Escape")
+            expect(phone.locator("#libraryDialog")).to_be_hidden()
+            expect(phone.locator("#openLibraryBtn")).to_be_focused()
+
+    def test_library_create_and_select_focus_editor_fields(self):
+        self.page.locator("#draftTitle").fill("已有文稿")
+        self.page.locator("#inputText").fill("已有正文。")
+        self.open_library()
+        self.page.locator("#newDraftBtn").click()
+        expect(self.page.locator("#libraryDialog")).to_be_hidden()
+        self.settle_layout()
+        expect(self.page.locator("#draftTitle")).to_be_focused()
+        self.page.keyboard.insert_text("新建文稿")
+        expect(self.page.locator("#draftTitle")).to_have_value("新建文稿")
+        self.select_draft("已有文稿")
+        self.settle_layout()
+        expect(self.page.locator("#inputText")).to_be_focused()
+        expect(self.page.locator("#inputText")).to_have_value("已有正文。")
+
+    def test_library_actions_stay_accessible_with_landscape_search_keyboard(self):
+        width, height, visible_height, offset_top = 844, 390, 230, 20
+        init_script = NO_FULLSCREEN + f"""
+            window.testViewport = new EventTarget();
+            Object.assign(window.testViewport, {{height: {height}, width: {width}, offsetTop: 0, offsetLeft: 0, scale: 1}});
+            Object.defineProperty(window, 'visualViewport', {{value: window.testViewport}});
+        """
+        for button in ["#closeLibraryBtn", "#newDraftBtn", "#undoDeleteBtn"]:
+            for interaction in ["mouse", "touch"]:
+                with self.subTest(button=button, interaction=interaction), self.phone(width, height, init_script) as phone:
+                    phone.locator("#draftTitle").fill("保留文稿")
+                    phone.locator("#inputText").fill("仍在书库里的内容。")
+                    self.create_draft("待恢复文稿", "删除后可以撤销的内容。", phone)
+                    self.open_library(phone)
+                    self.draft_item("待恢复文稿", phone).locator(".draft-delete").click()
+                    expect(self.draft_item("待恢复文稿", phone)).to_have_count(0)
+                    expect(phone.locator("#undoDeleteBtn")).to_be_visible()
+                    phone.locator("#librarySearch").focus()
+                    self.resize_mock_visual_viewport(phone, visible_height, offset_top)
+                    phone.wait_for_function("document.body.classList.contains('keyboard-open')")
+                    expect(phone.locator("#librarySearch")).to_be_focused()
+                    for selector in ["#libraryDialog", "#librarySearch", "#closeLibraryBtn", "#newDraftBtn", "#undoDeleteBtn"]:
+                        expect(phone.locator(selector)).to_be_visible()
+                        bounds = phone.locator(selector).bounding_box()
+                        self.assertGreaterEqual(bounds["y"], offset_top - 1, selector)
+                        self.assertLessEqual(bounds["y"] + bounds["height"], offset_top + visible_height + 1, selector)
+                        self.assertGreaterEqual(bounds["x"], -1, selector)
+                        self.assertLessEqual(bounds["x"] + bounds["width"], width + 1, selector)
+                        if selector.endswith("Btn"):
+                            self.assertGreaterEqual(bounds["width"], 44, selector)
+                            self.assertGreaterEqual(bounds["height"], 44, selector)
+                    # Use the pre-blur hit point while the visual viewport stays shortened.
+                    self.activate_at_current_position(phone, button, interaction)
+                    if button == "#undoDeleteBtn":
+                        expect(self.draft_item("待恢复文稿", phone)).to_have_count(1)
+                        expect(phone.locator("#libraryDialog")).to_be_visible()
+                        expect(phone.locator("#undoDeleteBtn")).to_be_hidden()
+                    else:
+                        expect(phone.locator("#libraryDialog")).to_be_hidden()
+                        self.settle_layout(phone)
+                        destination = "#draftTitle" if button == "#newDraftBtn" else "#openLibraryBtn"
+                        expect(phone.locator(destination)).to_be_focused()
+                    self.assertEqual(phone.evaluate("visualViewport.height"), visible_height)
+                    self.assertEqual(phone.evaluate("visualViewport.offsetTop"), offset_top)
 
     def test_text_import_and_undo(self):
         self.page.locator("#inputText").fill("导入前的文稿。")
@@ -319,7 +614,7 @@ class TeleprompterTests(unittest.TestCase):
         expect(self.page.locator("#inputText")).to_have_value(re.compile("你好，Flow 👋"))
         self.assertIn("Latin text & 中文\n下一行\t制表位", self.page.locator("#inputText").input_value())
         value = self.page.locator("#inputText").input_value()
-        self.page.reload()
+        self.reload_page()
         expect(self.page.locator("#inputText")).to_have_value(value)
 
     def test_docx_preserves_nonbreaking_hyphen(self):
@@ -329,8 +624,8 @@ class TeleprompterTests(unittest.TestCase):
         self.upload("nonbreaking-hyphen.docx", make_docx(document), DOCX_MIME)
         expected = "well\u2011being"
         expect(self.page.locator("#inputText")).to_have_value(expected)
-        self.assertEqual(self.page.evaluate("localStorage.getItem('savedText')"), expected)
-        self.page.reload()
+        self.wait_saved(expected)
+        self.reload_page()
         expect(self.page.locator("#inputText")).to_have_value(expected)
 
     def test_docx_undo_and_reselecting_same_file(self):
@@ -339,7 +634,7 @@ class TeleprompterTests(unittest.TestCase):
         self.page.locator("#inputText").fill(draft)
         self.upload("same.docx", package, DOCX_MIME)
         expect(self.page.locator("#inputText")).to_have_value("新的 Word 文稿。")
-        self.assertEqual(self.page.evaluate("localStorage.getItem('savedText')"), "新的 Word 文稿。")
+        self.wait_saved("新的 Word 文稿。")
         self.page.locator("#toastAction").click()
         expect(self.page.locator("#inputText")).to_have_value(draft)
         self.upload("same.docx", package, DOCX_MIME)
@@ -357,7 +652,7 @@ class TeleprompterTests(unittest.TestCase):
         for name, data, mime in cases:
             with self.subTest(file=name):
                 # A fresh navigation prevents a previous toast from satisfying the error check.
-                self.page.reload()
+                self.reload_page()
                 self.assert_rejected_import(name, data, mime)
 
     def test_missing_word_document_preserves_draft(self):
@@ -369,7 +664,7 @@ class TeleprompterTests(unittest.TestCase):
     def test_file_size_limits_preserve_draft(self):
         for name, size in [("large.txt", 1024 * 1024 + 1), ("large.docx", 10 * 1024 * 1024 + 1)]:
             with self.subTest(file=name):
-                self.page.reload()
+                self.reload_page()
                 draft = "文件太大时也应保留我。"
                 self.page.locator("#inputText").fill(draft)
                 # Allocate the real oversized File in-browser instead of transferring 10 MiB over the driver.
@@ -382,7 +677,7 @@ class TeleprompterTests(unittest.TestCase):
                 expect(self.page.locator("#toastMessage")).to_have_text(re.compile(r"[\u4e00-\u9fff]"))
                 expect(self.page.locator("#importFile")).to_have_value("")
                 expect(self.page.locator("#inputText")).to_have_value(draft)
-                self.assertEqual(self.page.evaluate("localStorage.getItem('savedText')"), draft)
+                self.wait_saved(draft)
 
     def test_docx_xml_and_extracted_text_limits_preserve_draft(self):
         oversized_xml = word_document(paragraph("少量正文") + "<!--" + "x" * (8 * 1024 * 1024) + "-->")
@@ -393,7 +688,7 @@ class TeleprompterTests(unittest.TestCase):
         ]
         for name, data, mime in cases:
             with self.subTest(file=name):
-                self.page.reload()
+                self.reload_page()
                 self.assert_rejected_import(name, data, mime)
 
     def test_zip_load_failure_is_retryable(self):
@@ -413,7 +708,7 @@ class TeleprompterTests(unittest.TestCase):
 
     def test_async_import_cannot_overwrite_a_later_edit(self):
         self.page.locator("#inputText").fill("开始导入前的内容。")
-        idle_label = self.page.locator("#importLabel").inner_text()
+        idle_label = self.page.locator("#importBtn").get_attribute("aria-label")
         self.page.evaluate("""() => {
             window.FlowDocumentImport = {
                 read: () => new Promise(resolve => { window.resolvePendingImport = resolve; })
@@ -421,13 +716,17 @@ class TeleprompterTests(unittest.TestCase):
         }""")
         self.upload("slow.docx", make_docx(), DOCX_MIME)
         self.page.wait_for_function("typeof window.resolvePendingImport === 'function'")
-        expect(self.page.locator("#importLabel")).not_to_have_text(idle_label)
+        expect(self.page.locator("#importBtn")).to_have_attribute("aria-busy", "true")
+        expect(self.page.locator("#importBtn")).to_be_disabled()
+        expect(self.page.locator("#importBtn")).not_to_have_attribute("aria-label", idle_label)
         self.page.locator("#inputText").fill("这是等待期间刚刚写下的新文稿。")
         self.page.evaluate("window.resolvePendingImport('不应覆盖新文稿的导入结果。')")
-        expect(self.page.locator("#importLabel")).to_have_text(idle_label)
+        expect(self.page.locator("#importBtn")).to_have_attribute("aria-busy", "false")
+        expect(self.page.locator("#importBtn")).to_have_attribute("aria-label", idle_label)
+        expect(self.page.locator("#importBtn")).to_be_enabled()
         expect(self.page.locator("#importFile")).to_have_value("")
         expect(self.page.locator("#inputText")).to_have_value("这是等待期间刚刚写下的新文稿。")
-        self.page.reload()
+        self.reload_page()
         expect(self.page.locator("#inputText")).to_have_value("这是等待期间刚刚写下的新文稿。")
 
     def test_modal_focus_escape_buttons_and_backdrop(self):
@@ -457,6 +756,7 @@ class TeleprompterTests(unittest.TestCase):
         expect(self.page.locator("#openSettingsBtn")).to_be_focused()
 
     def test_settings_persistence_mirror_colors_and_visibility(self):
+        self.page.locator("#inputText").fill(LONG_DRAFT)
         self.configure(fontSize=64, speed=70, mirror=True, showTimer=False, refLineWidth=0, countdownSetting=0)
         self.open_settings()
         for name, value in [("fontColor", "#ffee00"), ("bgColor", "#102030"), ("refLineColor", "#ff0088")]:
@@ -464,7 +764,7 @@ class TeleprompterTests(unittest.TestCase):
         family = self.page.locator("#fontFamily option").last.get_attribute("value")
         self.page.locator("#fontFamily").select_option(family)
         self.page.locator("#doneSettingsBtn").click()
-        self.page.reload()
+        self.reload_page()
         self.open_settings()
         for name, value in [("fontSize", "64"), ("fontSizeRange", "64"), ("speed", "70"), ("speedRange", "70"), ("fontColor", "#ffee00"), ("bgColor", "#102030"), ("refLineColor", "#ff0088"), ("fontFamily", family)]:
             expect(self.page.locator(f"#{name}")).to_have_value(value)
@@ -497,36 +797,35 @@ class TeleprompterTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate(setting_values), defaults)
         self.page.locator("#doneSettingsBtn").click()
         expect(self.page.locator("#inputText")).to_have_value(draft)
-        self.page.reload()
+        self.reload_page()
         expect(self.page.locator("#inputText")).to_have_value(draft)
         self.open_settings()
         self.assertEqual(self.page.evaluate(setting_values), defaults)
 
     def test_corrupt_settings_preserve_draft_and_valid_ranges(self):
         default_color = self.page.locator("#fontColor").input_value()
-        self.page.evaluate("""key => {
+        init_script = NO_FULLSCREEN + """
             localStorage.setItem('savedText', '旧文稿仍然在。');
-            localStorage.setItem(key, JSON.stringify({fontSize: 900, speed: -100, fontFamily: '<script>', mirror: 'true', fontColor: 'broken'}));
-        }""", SETTINGS_KEY)
-        self.page.reload()
-        expect(self.page.locator("#inputText")).to_have_value("旧文稿仍然在。")
-        self.open_settings()
-        expect(self.page.locator("#fontSize")).to_have_value("100")
-        expect(self.page.locator("#speed")).to_have_value("10")
-        expect(self.page.locator("#mirror")).not_to_be_checked()
-        expect(self.page.locator("#fontColor")).to_have_value(default_color)
-        self.assertNotEqual(self.page.locator("#fontFamily").input_value(), "<script>")
+            localStorage.setItem('flow.teleprompter.settings.v1', JSON.stringify({fontSize: 900, speed: -100, fontFamily: '<script>', mirror: 'true', fontColor: 'broken'}));
+        """
+        with self.phone(init_script=init_script) as phone:
+            expect(phone.locator("#inputText")).to_have_value("旧文稿仍然在。")
+            self.open_settings(phone)
+            expect(phone.locator("#fontSize")).to_have_value("100")
+            expect(phone.locator("#speed")).to_have_value("10")
+            expect(phone.locator("#mirror")).not_to_be_checked()
+            expect(phone.locator("#fontColor")).to_have_value(default_color)
+            self.assertNotEqual(phone.locator("#fontFamily").input_value(), "<script>")
 
     def test_reader_font_controls_replace_pause_button(self):
         self.start_reader(fontSize=36)
         expect(self.page.locator("#readerViewport")).to_have_attribute("role", "button")
         expect(self.page.locator("#playbackStatus")).to_have_attribute("role", "status")
-        self.page.locator("#fontSizeBtn").click()
-        expect(self.page.locator("#fontSizePanel")).to_be_visible()
-        expect(self.page.locator("#playerFontSizeRange")).to_have_value("36")
-        expect(self.page.locator("#playerFontSizeValue")).to_have_text("36 px")
+        expect(self.page.locator("#fontSizeBtn, #fontSizePanel, #playerFontSizeRange, #closeFontSizeBtn, #pauseBtn")).to_have_count(0)
+        expect(self.page.locator("#controlButtons button")).to_have_count(6)
+        expect(self.page.locator("#playerFontSizeValue")).to_have_text("36")
         self.page.locator("#largerFontBtn").click()
-        expect(self.page.locator("#playerFontSizeRange")).to_have_value("38")
+        expect(self.page.locator("#playerFontSizeValue")).to_have_text("38")
         expect(self.page.locator("#display")).to_have_attribute("data-state", "playing")
 
     def test_reader_tap_space_enter_and_drag_preserve_pause_state(self):
@@ -552,17 +851,14 @@ class TeleprompterTests(unittest.TestCase):
         self.tap_reader()
         expect(self.page.locator("#display")).to_have_attribute("data-state", "playing")
 
-    def test_font_range_buttons_keyboard_and_persistence(self):
+    def test_direct_font_buttons_preserve_progress_timer_and_persistence(self):
         self.page.clock.install()
         self.start_reader(fontSize=36)
         self.page.clock.run_for(10000)
         self.tap_reader()
         before = self.reader_metrics()
         self.assertGreater(before["progress"], 0)
-        self.page.locator("#fontSizeBtn").click()
-        expect(self.page.locator("#fontSizeBtn")).to_have_attribute("aria-expanded", "true")
-        self.set_range("#playerFontSizeRange", 64)
-        expect(self.page.locator("#playerFontSizeValue")).to_have_text("64 px")
+        self.change_reader_font(64)
         expect(self.page.locator("#fontSize")).to_have_value("64")
         expect(self.page.locator("#fontSizeRange")).to_have_value("64")
         expect(self.page.locator("#text")).to_have_css("font-size", "64px")
@@ -573,52 +869,41 @@ class TeleprompterTests(unittest.TestCase):
         self.assertEqual(after["timer"], before["timer"])
         expect(self.page.locator("#display")).to_have_attribute("data-state", "paused")
         self.page.locator("#largerFontBtn").click()
-        expect(self.page.locator("#playerFontSizeRange")).to_have_value("66")
+        expect(self.page.locator("#playerFontSizeValue")).to_have_text("66")
         self.page.locator("#smallerFontBtn").click()
-        expect(self.page.locator("#playerFontSizeRange")).to_have_value("64")
+        expect(self.page.locator("#playerFontSizeValue")).to_have_text("64")
         speed = self.page.locator("#playbackSpeed").inner_text()
-        slider = self.page.locator("#playerFontSizeRange")
-        slider.focus()
-        slider.press("ArrowRight")
-        self.assertGreater(int(slider.input_value()), 64)
+        button = self.page.locator("#largerFontBtn")
+        button.focus()
+        button.press("ArrowRight")
+        expect(self.page.locator("#playerFontSizeValue")).to_have_text("64")
         expect(self.page.locator("#playbackSpeed")).to_have_text(speed)
         expect(self.page.locator("#display")).to_have_attribute("data-state", "paused")
-        slider.press("Space")
+        button.press("Space")
+        expect(self.page.locator("#playerFontSizeValue")).to_have_text("66")
+        button.press("Enter")
+        expect(self.page.locator("#playerFontSizeValue")).to_have_text("68")
         expect(self.page.locator("#display")).to_have_attribute("data-state", "paused")
         for boundary, button in [(100, "#largerFontBtn"), (10, "#smallerFontBtn")]:
-            self.set_range("#playerFontSizeRange", boundary)
-            if self.page.locator(button).is_enabled():
-                self.page.locator(button).click()
-            expect(slider).to_have_value(str(boundary))
-            expect(self.page.locator("#playerFontSizeValue")).to_have_text(f"{boundary} px")
-        self.set_range("#playerFontSizeRange", 58)
-        self.page.keyboard.press("Escape")
-        expect(self.page.locator("#fontSizePanel")).to_be_hidden()
-        expect(self.page.locator("#fontSizeBtn")).to_have_attribute("aria-expanded", "false")
-        expect(self.page.locator("#fontSizeBtn")).to_be_focused()
-        expect(self.page.locator("#display")).to_have_attribute("data-state", "paused")
+            self.change_reader_font(boundary)
+            expect(self.page.locator(button)).to_be_disabled()
+            expect(self.page.locator("#playerFontSizeValue")).to_have_text(str(boundary))
+        self.change_reader_font(58)
         self.page.keyboard.press("Escape")
         expect(self.page.locator("#display")).to_be_hidden()
-        self.page.reload()
+        self.reload_page()
         self.open_settings()
         expect(self.page.locator("#fontSize")).to_have_value("58")
         expect(self.page.locator("#fontSizeRange")).to_have_value("58")
         self.assertEqual(self.page.evaluate(f"JSON.parse(localStorage.getItem('{SETTINGS_KEY}')).fontSize"), 58)
 
-    def test_font_panel_close_and_pointer_slider_do_not_pause(self):
+    def test_direct_font_buttons_do_not_pause_playback(self):
         self.start_reader(fontSize=36)
-        self.page.locator("#fontSizeBtn").click()
-        slider = self.page.locator("#playerFontSizeRange")
-        bounds = slider.bounding_box()
-        self.page.mouse.move(bounds["x"] + bounds["width"] * 0.3, bounds["y"] + bounds["height"] / 2)
-        self.page.mouse.down()
-        self.page.mouse.move(bounds["x"] + bounds["width"] * 0.75, bounds["y"] + bounds["height"] / 2, steps=8)
-        self.page.mouse.up()
-        self.assertGreater(int(slider.input_value()), 36)
+        self.page.locator("#largerFontBtn").click()
+        expect(self.page.locator("#text")).to_have_css("font-size", "38px")
         expect(self.page.locator("#display")).to_have_attribute("data-state", "playing")
-        self.page.locator("#closeFontSizeBtn").click()
-        expect(self.page.locator("#fontSizePanel")).to_be_hidden()
-        expect(self.page.locator("#fontSizeBtn")).to_have_attribute("aria-expanded", "false")
+        self.page.locator("#smallerFontBtn").click()
+        expect(self.page.locator("#text")).to_have_css("font-size", "36px")
         expect(self.page.locator("#display")).to_have_attribute("data-state", "playing")
 
     def test_enlarged_font_updates_completion_and_replay(self):
@@ -626,12 +911,17 @@ class TeleprompterTests(unittest.TestCase):
         draft = "\n".join(["Stay with this sentence as the font changes."] * 4)
         self.start_reader(draft=draft, fontSize=20, speed=100)
         self.page.clock.run_for(200)
-        self.page.locator("#fontSizeBtn").click()
+        # Real pointer clicks take longer on WebKit; freeze playback while preparing
+        # the larger layout so those clicks cannot consume the original deadline.
+        self.tap_reader()
+        expect(self.page.locator("#display")).to_have_attribute("data-state", "paused")
         original = self.reader_metrics()
-        self.set_range("#playerFontSizeRange", 100)
+        self.change_reader_font(100)
         self.settle_layout()
         enlarged = self.reader_metrics()
         self.assertGreater(enlarged["remaining"], original["remaining"] + 100)
+        expect(self.page.locator("#display")).to_have_attribute("data-state", "paused")
+        self.tap_reader()
         expect(self.page.locator("#display")).to_have_attribute("data-state", "playing")
         self.page.clock.run_for(math.ceil(max(0, original["remaining"]) / 100 * 1000 + 200))
         expect(self.page.locator("#display")).to_have_attribute("data-state", "playing")
@@ -642,9 +932,8 @@ class TeleprompterTests(unittest.TestCase):
         timer = self.page.locator("#timer").inner_text()
         self.page.clock.run_for(2000)
         expect(self.page.locator("#timer")).to_have_text(timer)
-        self.set_range("#playerFontSizeRange", 60)
+        self.change_reader_font(60)
         expect(self.page.locator("#display")).to_have_attribute("data-state", "finished")
-        self.page.locator("#closeFontSizeBtn").click()
         self.page.locator("#restartBtn").click()
         expect(self.page.locator("#display")).to_have_attribute("data-state", "playing")
         expect(self.page.locator("#timer")).to_have_text("00:00")
@@ -732,11 +1021,11 @@ class TeleprompterTests(unittest.TestCase):
         for width, height in [(320, 568), (390, 844), (844, 390), (1440, 1000)]:
             with self.subTest(viewport=(width, height)):
                 self.page.set_viewport_size({"width": width, "height": height})
-                self.page.reload()
+                self.reload_page()
                 self.page.locator("#inputText").fill(LONG_DRAFT)
                 self.page.locator("#inputText").blur()
                 self.assertLessEqual(self.page.evaluate("document.documentElement.scrollWidth"), width + 1)
-                for selector in ["#openSettingsBtn", "#importBtn", "#clearBtn", "#startBtn"]:
+                for selector in ["#openLibraryBtn", "#openSettingsBtn", "#importBtn", "#clearBtn", "#startBtn"]:
                     self.assert_fits_viewport(selector, minimum_target=True)
                 settings_bounds = self.page.locator("#openSettingsBtn").bounding_box()
                 self.assertGreater(settings_bounds["x"], width / 2)
@@ -751,24 +1040,36 @@ class TeleprompterTests(unittest.TestCase):
                 self.page.locator("#startBtn").click()
                 self.tap_reader()
                 expect(self.page.locator("#display")).to_have_attribute("data-state", "paused")
-                for selector in ["#restartBtn", "#slowerBtn", "#fasterBtn", "#fontSizeBtn", "#exitBtn"]:
+                for selector in ["#restartBtn", "#slowerBtn", "#fasterBtn", "#smallerFontBtn", "#largerFontBtn", "#exitBtn"]:
                     self.assert_fits_viewport(selector, minimum_target=True)
-                self.page.locator("#fontSizeBtn").click()
-                self.assert_fits_viewport("#fontSizePanel")
-                for selector in ["#smallerFontBtn", "#largerFontBtn", "#closeFontSizeBtn"]:
-                    self.assert_fits_viewport(selector, minimum_target=True)
-                self.assert_fits_viewport("#playerFontSizeRange")
+                expect(self.page.locator("#controlButtons button")).to_have_count(6)
+                self.assert_fits_viewport("#playerFontSizeValue")
+                buttons = self.page.locator("#controlButtons button").evaluate_all("""buttons => buttons.map(button => {
+                    const {x, y, width, height} = button.getBoundingClientRect();
+                    return {id: button.id, x, y, width, height};
+                })""")
+                for index, first in enumerate(buttons):
+                    for second in buttons[index + 1:]:
+                        overlap_x = min(first["x"] + first["width"], second["x"] + second["width"]) - max(first["x"], second["x"])
+                        overlap_y = min(first["y"] + first["height"], second["y"] + second["height"]) - max(first["y"], second["y"])
+                        self.assertTrue(overlap_x <= 1 or overlap_y <= 1, f"Overlapping buttons: {first['id']}, {second['id']}")
+                if width <= 400:
+                    bounds = {button["id"]: button for button in buttons}
+                    self.assertAlmostEqual(bounds["slowerBtn"]["y"], bounds["fasterBtn"]["y"], delta=1)
+                    self.assertAlmostEqual(bounds["smallerFontBtn"]["y"], bounds["largerFontBtn"]["y"], delta=1)
+                    speed_bottom = max(bounds[name]["y"] + bounds[name]["height"] for name in ["slowerBtn", "fasterBtn"])
+                    font_top = min(bounds[name]["y"] for name in ["smallerFontBtn", "largerFontBtn"])
+                    self.assertLessEqual(speed_bottom, font_top + 1)
                 self.assertLessEqual(self.page.evaluate("document.documentElement.scrollWidth"), width + 1)
                 self.page.locator("#exitBtn").click()
 
-    def test_touch_rotation_preserves_position_timer_and_open_font_panel(self):
+    def test_touch_rotation_preserves_position_timer_and_direct_controls(self):
         with self.phone() as phone:
             phone.clock.install()
             self.start_reader(phone, fontSize=36)
             phone.clock.run_for(3000)
             phone.touchscreen.tap(175, 245)
             expect(phone.locator("#display")).to_have_attribute("data-state", "paused")
-            phone.locator("#fontSizeBtn").click()
             before = self.reader_metrics(phone)
             for width, height in [(844, 390), (390, 844)]:
                 phone.set_viewport_size({"width": width, "height": height})
@@ -777,11 +1078,10 @@ class TeleprompterTests(unittest.TestCase):
                 self.assertAlmostEqual(after["fraction"], before["fraction"], delta=0.015)
                 self.assertEqual(after["timer"], before["timer"])
                 expect(phone.locator("#display")).to_have_attribute("data-state", "paused")
-                expect(phone.locator("#fontSizePanel")).to_be_visible()
-                self.assert_fits_viewport("#fontSizePanel", phone)
+                self.assert_fits_viewport("#smallerFontBtn", phone, minimum_target=True)
+                self.assert_fits_viewport("#largerFontBtn", phone, minimum_target=True)
                 self.assert_fits_viewport("#controlButtons", phone)
                 self.assertLessEqual(phone.evaluate("document.documentElement.scrollWidth"), width + 1)
-            phone.locator("#closeFontSizeBtn").click()
             phone.touchscreen.tap(175, 245)
             expect(phone.locator("#display")).to_have_attribute("data-state", "playing")
             phone.locator("#exitBtn").click()
@@ -809,8 +1109,7 @@ class TeleprompterTests(unittest.TestCase):
                 self.start_reader(phone, draft=draft)
                 phone.touchscreen.tap(175, 245)
                 expect(phone.locator("#display")).to_have_attribute("data-state", "paused")
-                phone.locator("#fontSizeBtn").click()
-                self.set_range("#playerFontSizeRange", 50, phone)
+                self.change_reader_font(50, phone)
                 expect(phone.locator("#text")).to_have_css("font-size", "50px")
                 phone.locator("#exitBtn").click()
                 expect(phone.locator("#inputText")).to_have_value(draft)
@@ -826,7 +1125,7 @@ class TeleprompterTests(unittest.TestCase):
                 }
             }});
         """)
-        self.page.reload()
+        self.reload_page()
         self.start_reader()
         self.page.wait_for_function("window.lockRequests === 1")
         self.page.locator("#exitBtn").click()

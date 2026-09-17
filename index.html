@@ -11,12 +11,14 @@
     <meta property="og:image" content="https://rrrrudddd.github.io/teleprompter/icon.png">
     <meta property="og:url" content="https://rrrrudddd.github.io/teleprompter/">
     <meta property="og:type" content="website">
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" id="appManifest">
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
     <link rel="apple-touch-icon" href="./apple-touch-icon.png">
     <link rel="stylesheet" href="./styles.css">
     <script src="./document-import.js" defer></script>
+    <script src="./script-library.js" defer></script>
     <script src="./app.js" defer></script>
+    <script src="./pwa.js" defer></script>
     <title>Flow · 简易提词器</title>
 </head>
 <body>
@@ -36,7 +38,9 @@
         <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
         <symbol id="i-mirror" viewBox="0 0 24 24"><path d="M12 3v2m0 4v2m0 4v2m0 4v.01M8 5 3 19h5ZM16 5l5 14h-5Z"/></symbol>
         <symbol id="i-type" viewBox="0 0 24 24"><path d="M3 20 9 4l6 16M5.5 14h7M16 11h6m-3 0v9"/></symbol>
-        <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4"/></symbol>
+        <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 4h4v16H4zM10 4h4v16h-4zM17 4l4 15-4 1-4-15"/></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-4-4 4 4 4-4M4 16v4h16v-4"/></symbol>
         <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
         <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
     </svg>
@@ -47,8 +51,8 @@
                 <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-logo"/></svg></span>
                 <span class="brand-name">Flow<span>提词器</span></span>
             </a>
-            <button type="button" class="tonal-button settings-trigger" id="openSettingsBtn" aria-haspopup="dialog" aria-controls="settingsDialog" aria-label="打开提词设置">
-                <svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span>设置</span>
+            <button type="button" class="icon-button settings-trigger" id="openSettingsBtn" aria-haspopup="dialog" aria-controls="settingsDialog" aria-label="打开提词设置" title="提词设置">
+                <svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>
             </button>
         </div>
     </header>
@@ -56,33 +60,42 @@
     <main class="app-main" id="controls">
         <section class="editor-card" aria-labelledby="editorTitle">
             <div class="editor-heading">
-                <h1 id="editorTitle">我的文稿</h1>
+                <h1 id="editorTitle" class="sr-only">我的文稿</h1>
+                <button type="button" class="text-button library-trigger" id="openLibraryBtn" aria-haspopup="dialog" aria-controls="libraryDialog" disabled><svg class="icon" aria-hidden="true"><use href="#i-library"/></svg>文稿库<span class="draft-count" id="draftCount">0</span></button>
                 <div class="editor-actions">
-                    <button type="button" class="tonal-button import-button" id="importBtn" aria-describedby="importHint">
-                        <svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg><span id="importLabel">导入文件</span>
+                    <button type="button" class="icon-button import-button" id="importBtn" aria-describedby="importHint" aria-label="导入文件" title="导入 TXT / DOCX 文件" disabled>
+                        <svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>
                     </button>
                     <button type="button" class="icon-button quiet-danger" id="clearBtn" aria-label="清空文稿" title="清空文稿"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
                     <input type="file" id="importFile" accept=".txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
                 </div>
             </div>
-            <p class="editor-hint" id="importHint">直接输入、粘贴，或导入 TXT / DOCX 文稿</p>
+            <div class="draft-title-field"><label class="sr-only" for="draftTitle">文稿标题</label><input type="text" id="draftTitle" maxlength="120" placeholder="未命名文稿" autocomplete="off" disabled></div>
+            <p class="editor-hint" id="importHint">写下想说的话，或导入 TXT / DOCX 文稿</p>
             <div class="editor-surface">
                 <label class="sr-only" for="inputText">提词文稿</label>
-                <textarea id="inputText" spellcheck="false" placeholder="写下你想说的话。&#10;&#10;也可以粘贴文字，或导入准备好的文稿。"></textarea>
+                <textarea id="inputText" spellcheck="false" placeholder="从这里，开始你的下一次表达。&#10;&#10;准备多篇文稿，在文稿库中随时切换。" disabled></textarea>
             </div>
             <div class="editor-footer">
-                <span class="save-state" id="saveStatus" role="status"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span id="saveLabel">已在此设备保存</span></span>
+                <span class="save-state" id="saveStatus" role="status"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span id="saveLabel">正在读取文稿…</span></span>
                 <div class="document-stats"><span><strong id="wordCount">0</strong> 字</span><span class="stats-divider"></span><span title="以每分钟 240 字估算"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><span id="readTime">00:00</span></span></div>
             </div>
         </section>
-        <div class="console-note"><span><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>文稿仅保存在此设备</span><button type="button" class="text-button" id="sampleBtn"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg>试用示例</button></div>
+        <div class="console-note"><span><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>文稿仅保存在此设备</span></div>
         <div class="launchbar">
             <div class="launch-inner">
-                <p id="startHint">5 秒倒计时，从容开始</p>
-                <button type="button" class="primary-button" id="startBtn"><svg class="icon play-icon" aria-hidden="true"><use href="#i-play"/></svg><span>开始提词</span></button>
+                <button type="button" class="primary-button" id="startBtn" disabled><svg class="icon play-icon" aria-hidden="true"><use href="#i-play"/></svg><span>开始提词</span></button>
             </div>
         </div>
     </main>
+
+    <dialog class="settings-dialog library-dialog" id="libraryDialog" aria-labelledby="libraryTitle">
+        <div class="dialog-heading"><div><h2 id="libraryTitle">文稿库</h2><p class="section-description">为每一次表达，提前做好准备。</p></div><button type="button" class="icon-button" id="closeLibraryBtn" aria-label="关闭文稿库" autofocus><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+        <div class="library-search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><label class="sr-only" for="librarySearch">搜索文稿</label><input type="search" id="librarySearch" placeholder="搜索标题或正文" autocomplete="off"></div>
+        <div class="dialog-body library-body"><ul class="draft-list" id="draftList" aria-label="已保存的文稿"></ul><p class="library-empty" id="libraryEmpty" hidden>没有找到匹配的文稿。</p></div>
+        <div class="dialog-actions library-actions"><span class="section-description" id="libraryStorageStatus">仅保存在此设备</span><button type="button" class="primary-button" id="newDraftBtn"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>新建文稿</button></div>
+        <div class="library-feedback" id="libraryFeedback" hidden><span id="libraryFeedbackMessage" role="status"></span><button type="button" class="text-button" id="undoDeleteBtn">撤销删除</button></div>
+    </dialog>
 
     <dialog class="settings-dialog" id="settingsDialog" aria-labelledby="settingsTitle">
         <div class="dialog-heading"><h2 id="settingsTitle">提词设置</h2><button type="button" class="icon-button" id="closeSettingsBtn" aria-label="关闭设置" autofocus><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
@@ -127,12 +140,20 @@
                     <div class="guide-width"><label for="refLineWidth">粗细</label><div class="select-wrap compact-select"><select id="refLineWidth"><option value="0">隐藏</option><option value="1" selected>1 px</option><option value="2">2 px</option><option value="3">3 px</option><option value="4">4 px</option><option value="5">5 px</option><option value="6">6 px</option><option value="7">7 px</option></select><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></div></div>
                 </div>
             </section>
+            <section class="settings-section pwa-settings" aria-labelledby="pwaTitle">
+                <h3 id="pwaTitle">随时随地，开口就说</h3>
+                <p class="section-description" id="offlineStatus" role="status">正在检查离线状态…</p>
+                <button type="button" class="tonal-button" id="installAppBtn" hidden><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>安装到设备</button>
+                <p class="section-description" id="installHint"></p>
+                <p class="section-description" id="updateStatus" role="status" hidden></p>
+            </section>
             <details class="help-notes">
                 <summary><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg>使用提示<svg class="icon chevron" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
                 <div class="help-body">
                     <p>输入、粘贴文字，或导入 UTF-8 的 TXT、Word 的 DOCX 文件。文稿在本机处理，导入后可以撤销。</p>
-                    <p>提词时轻点画面暂停或继续，上下拖动调整位置。点击“调整大小”即可修改字号。</p>
-                    <p><kbd>Space</kbd> 暂停 / 继续，<kbd>↑</kbd> <kbd>↓</kbd> 调整位置，<kbd>←</kbd> <kbd>→</kbd> 调整速度，<kbd>Esc</kbd> 收起字号面板或返回编辑。</p>
+                    <p>在文稿库中新建、搜索和切换文稿，点击文稿标题即可命名。删除后可撤销。</p>
+                    <p>提词时轻点画面暂停或继续，上下拖动调整位置。底部的加减按钮可直接调整速度与字号。</p>
+                    <p><kbd>Space</kbd> 暂停 / 继续，<kbd>↑</kbd> <kbd>↓</kbd> 调整位置，<kbd>←</kbd> <kbd>→</kbd> 调整速度，<kbd>Esc</kbd> 返回编辑。</p>
                     <p>也支持蓝牙手柄：方向键调整位置与速度，A 键暂停 / 继续，B 键返回。iPhone 可通过 Safari 添加到主屏幕使用。</p>
                     <p class="app-credit">原作 · <a href="https://www.facebook.com/profile.php?id=61557246475372" target="_blank" rel="noopener noreferrer">仨宝爸中医博士吴启铭</a></p>
                 </div>
@@ -150,15 +171,10 @@
         <div class="countdown-overlay" id="countdown" hidden role="status" aria-live="polite"><span>准备开始</span><strong id="countdownNumber">5</strong><span>深呼吸，按自己的节奏来。</span></div>
         <div class="player-bottom">
             <p class="player-tip" id="playerTip">轻点画面暂停 · 上下拖动调整位置</p>
-            <section class="font-size-panel" id="fontSizePanel" hidden role="group" aria-labelledby="playerFontTitle">
-                <div class="font-panel-heading"><label id="playerFontTitle" for="playerFontSizeRange">字体大小</label><output id="playerFontSizeValue" for="playerFontSizeRange">36 px</output><button type="button" class="player-icon-button" id="closeFontSizeBtn" aria-label="收起字号调整"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
-                <div class="font-panel-controls"><button type="button" class="player-icon-button font-step" id="smallerFontBtn" aria-label="减小字号"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></button><input type="range" id="playerFontSizeRange" min="10" max="100" value="36" aria-label="提词字体大小"><button type="button" class="player-icon-button font-step" id="largerFontBtn" aria-label="增大字号"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button></div>
-            </section>
             <div class="player-toolbar" id="controlButtons" aria-label="提词控制">
                 <button type="button" class="player-icon-button" id="restartBtn" aria-label="从头开始" title="从头开始"><svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg></button>
-                <span class="player-divider"></span>
                 <div class="player-speed" role="group" aria-label="滚动速度"><button type="button" class="player-icon-button" id="slowerBtn" aria-label="降低速度"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></button><span><strong id="playbackSpeed">40</strong><small>px/s</small></span><button type="button" class="player-icon-button" id="fasterBtn" aria-label="增加速度"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button></div>
-                <button type="button" class="player-size-button" id="fontSizeBtn" aria-controls="fontSizePanel" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-type"/></svg><span>调整大小</span></button>
+                <div class="player-speed player-font" role="group" aria-label="字体大小"><button type="button" class="player-icon-button" id="smallerFontBtn" aria-label="减小字号"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></button><span><strong id="playerFontSizeValue">36</strong><small>字号 px</small></span><button type="button" class="player-icon-button" id="largerFontBtn" aria-label="增大字号"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button></div>
                 <button type="button" class="player-icon-button exit-button" id="exitBtn" aria-label="返回编辑" title="返回编辑"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
             </div>
         </div>
