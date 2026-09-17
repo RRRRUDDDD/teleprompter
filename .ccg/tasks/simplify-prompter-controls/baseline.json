@@ -1,0 +1,16 @@
+{
+  "workspace": "E:\\Downloads\\44456654\\teleprompter",
+  "temporaryDirectory": "C:\\Users\\RUD\\AppData\\Local\\Temp\\flow-simplify-controls-ccbb1158c5b24e68af72787ab4c7ad65",
+  "baselineDirectory": "C:\\Users\\RUD\\AppData\\Local\\Temp\\flow-simplify-controls-ccbb1158c5b24e68af72787ab4c7ad65\\baseline",
+  "baselineFiles": [
+    "index.html",
+    "app.js",
+    "styles.css",
+    "README.md",
+    "tests/verify_ui.py",
+    "tests/capture_ui.py",
+    ".ccg/spec/frontend/index.md",
+    "worker.js",
+    "manifest.json"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "simplify-prompter-controls",
+  "title": "精简提词控件，新增多文稿库与可安装离线 PWA",
+  "status": "in_progress",
+  "complexity": "L",
+  "risk": "high",
+  "domain": "frontend",
+  "currentPhase": "analysis",
+  "nextAction": "纳入多文稿持久化和 PWA，完成独立分析后按数据、PWA、界面划分实施",
+  "createdAt": "2026-09-16T07:55:10Z",
+  "branch": "main"
+}
